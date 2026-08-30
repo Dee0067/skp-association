@@ -117,7 +117,7 @@ export default function ContactSection() {
     const newTotal = nextFiles.reduce((sum, f) => sum + f.size, 0);
 
     if (newTotal > MAX_TOTAL_SIZE) {
-      setFileError('ขนาดไฟล์รวมเกิน 15 MB กรุณาเลือกไฟล์ที่มีขนาดเล็กลง หรือส่งไฟล์เพิ่มเติมผ่านอีเมล supotmeskp@gmail.com ได้โดยตรง');
+      setFileError('ขนาดไฟล์รวมเกิน 15 MB กรุณาเลือกไฟล์ที่มีขนาดเล็กลง หรือส่งไฟล์เพิ่มเติมผ่านอีเมล supot.meskp@gmail.com ได้โดยตรง');
       return;
     }
 
@@ -214,7 +214,7 @@ export default function ContactSection() {
     } catch (err: any) {
       console.error('Submit error:', err);
       setSubmitError(
-        err.message || 'ไม่สามารถส่งข้อมูลได้ชั่วคราว สามารถส่งข้อมูลโดยตรงที่อีเมล supotmeskp@gmail.com หรือโทร 02-116-4125'
+        err.message || 'ไม่สามารถส่งข้อมูลได้ชั่วคราว สามารถส่งข้อมูลโดยตรงที่อีเมล supot.meskp@gmail.com หรือโทร 02-116-4125'
       );
     } finally {
       setLoading(false);
@@ -431,7 +431,7 @@ export default function ContactSection() {
                   <div>
                     <h4 className="text-2xl font-bold text-white">ได้รับข้อมูลเรียบร้อยแล้ว</h4>
                     <div className="inline-flex items-center space-x-1.5 px-3 py-1 mt-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-                      <span>✓ ส่งข้อมูลไปยัง email: supotmeskp@gmail.com แล้ว</span>
+                      <span>✓ ส่งข้อมูลไปยัง email: supot.meskp@gmail.com แล้ว</span>
                     </div>
                   </div>
                   <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
@@ -684,10 +684,10 @@ export default function ContactSection() {
                       <div className="text-[11px] text-slate-300">
                         หากระบบมีปัญหา สามารถส่งไฟล์และรายละเอียดโดยตรงได้ที่อีเมล:{' '}
                         <a 
-                          href="mailto:supotmeskp@gmail.com?subject=ขอใบเสนอราคา%20/%20ปรึกษางาน" 
+                          href="mailto:supot.meskp@gmail.com?subject=ขอใบเสนอราคา%20/%20ปรึกษางาน" 
                           className="text-skp-cyan underline font-mono"
                         >
-                          supotmeskp@gmail.com
+                          supot.meskp@gmail.com
                         </a>
                       </div>
                     </div>
@@ -702,7 +702,7 @@ export default function ContactSection() {
                       {loading ? (
                         <div className="flex items-center space-x-2">
                           <Loader2 className="w-4 h-4 animate-spin text-white" />
-                          <span>กำลังส่งข้อมูลและแนบไฟล์ไปยัง supotmeskp@gmail.com...</span>
+                          <span>กำลังส่งข้อมูลและแนบไฟล์ไปยัง supot.meskp@gmail.com...</span>
                         </div>
                       ) : (
                         <>
@@ -715,7 +715,7 @@ export default function ContactSection() {
 
                   <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-400 pt-2 font-mono">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ข้อมูลและไฟล์แนบจะถูกส่งตรงไปยัง email: supotmeskp@gmail.com อย่างปลอดภัย</span>
+                    <span>ข้อมูลและไฟล์แนบจะถูกส่งตรงไปยัง email: supot.meskp@gmail.com อย่างปลอดภัย</span>
                   </div>
                 </form>
               )}

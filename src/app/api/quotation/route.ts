@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const TARGET_EMAIL = 'supotmeskp@gmail.com';
+const TARGET_EMAIL = 'supot.meskp@gmail.com';
 
 const serviceTypeLabels: Record<string, string> = {
   electrical: 'ออกแบบและปรึกษาระบบไฟฟ้า / หม้อแปลง / ตู้ MDB',
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
       if (relayRes.ok) {
         return NextResponse.json({
           success: true,
-          message: 'ส่งข้อมูลและไฟล์แนบไปยัง supotmeskp@gmail.com เรียบร้อยแล้ว',
+          message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
           recipient: TARGET_EMAIL,
           filesCount: files.length,
         });
