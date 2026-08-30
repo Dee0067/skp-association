@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Phone, 
   Printer, 
@@ -17,7 +17,14 @@ import {
   Maximize2,
   X,
   Copy,
-  Check
+  Check,
+  Upload,
+  Trash2,
+  Loader2,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Layers,
+  Paperclip
 } from 'lucide-react';
 
 export default function ContactSection() {
@@ -29,6 +36,21 @@ export default function ContactSection() {
     serviceType: 'electrical',
     message: '',
   });
+
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submittedData, setSubmittedData] = useState<{
+    name: string;
+    company: string;
+    phone: string;
+    email: string;
+    serviceType: string;
+    filesCount: number;
+  } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,6 +64,90 @@ export default function ContactSection() {
   const googleMapsUrl = `https://www.google.com/maps?q=${officeCoords}`;
   const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${officeCoords}`;
   const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${officeCoords}&hl=th&z=16&t=&ie=UTF8&iwloc=&output=embed`;
+
+  const MAX_TOTAL_SIZE = 15 * 1024 * 1024; // 15 MB
+  const totalFileSize = files.reduce((acc, f) => acc + f.size, 0);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getFileBadge = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    if (['dwg', 'dxf', 'dwf'].includes(ext)) {
+      return { label: 'AutoCAD', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' };
+    }
+    if (['pdf'].includes(ext)) {
+      return { label: 'PDF', color: 'bg-rose-500/20 text-rose-300 border-rose-500/40' };
+    }
+    if (['xls', 'xlsx', 'csv'].includes(ext)) {
+      return { label: 'Excel', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' };
+    }
+    if (['doc', 'docx'].includes(ext)) {
+      return { label: 'Word', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' };
+    }
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+      return { label: 'Picture', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' };
+    }
+    return { label: ext.toUpperCase() || 'FILE', color: 'bg-slate-500/20 text-slate-300 border-slate-500/40' };
+  };
+
+  const validateAndAddFiles = (newFiles: FileList | File[]) => {
+    setFileError(null);
+    const validExtensions = ['.pdf', '.xls', '.xlsx', '.csv', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.webp', '.dwg', '.dxf', '.dwf'];
+    const addedList: File[] = [];
+
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+      if (!validExtensions.includes(ext)) {
+        setFileError(`ไฟล์ "${file.name}" ไม่ใช่ประเภทที่รองรับ (รองรับ PDF, Excel, Word, AutoCAD และรูปภาพ)`);
+        continue;
+      }
+      // Check duplicate
+      const isDuplicate = files.some((existing) => existing.name === file.name && existing.size === file.size);
+      if (isDuplicate) continue;
+
+      addedList.push(file);
+    }
+
+    const nextFiles = [...files, ...addedList];
+    const newTotal = nextFiles.reduce((sum, f) => sum + f.size, 0);
+
+    if (newTotal > MAX_TOTAL_SIZE) {
+      setFileError('ขนาดไฟล์รวมเกิน 15 MB กรุณาเลือกไฟล์ที่มีขนาดเล็กลง หรือส่งไฟล์เพิ่มเติมผ่านอีเมล supotmeskp@gmail.com ได้โดยตรง');
+      return;
+    }
+
+    if (nextFiles.length > 10) {
+      setFileError('สามารถแนบไฟล์ได้สูงสุด 10 ไฟล์ต่อครั้ง');
+      return;
+    }
+
+    setFiles(nextFiles);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      validateAndAddFiles(e.target.files);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      validateAndAddFiles(e.dataTransfer.files);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFileError(null);
+  };
 
   const handleCopyAddress = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,13 +163,62 @@ export default function ContactSection() {
     setTimeout(() => setCopiedCoords(false), 2200);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setSubmitError(null);
+
+    try {
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('company', formData.company);
+      data.append('phone', formData.phone);
+      data.append('email', formData.email);
+      data.append('serviceType', formData.serviceType);
+      data.append('message', formData.message);
+
+      for (const file of files) {
+        data.append('files', file);
+      }
+
+      const res = await fetch('/api/quotation', {
+        method: 'POST',
+        body: data,
+      });
+
+      const result = await res.json().catch(() => null);
+
+      if (!res.ok && (!result || !result.success)) {
+        throw new Error(result?.error || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+      }
+
+      setSubmittedData({
+        name: formData.name,
+        company: formData.company,
+        phone: formData.phone,
+        email: formData.email,
+        serviceType: formData.serviceType,
+        filesCount: files.length,
+      });
+
       setSubmitted(true);
-    }, 800);
+      setFiles([]);
+      setFormData({
+        name: '',
+        company: '',
+        phone: '',
+        email: '',
+        serviceType: 'electrical',
+        message: '',
+      });
+    } catch (err: any) {
+      console.error('Submit error:', err);
+      setSubmitError(
+        err.message || 'ไม่สามารถส่งข้อมูลได้ชั่วคราว สามารถส่งข้อมูลโดยตรงที่อีเมล supotmeskp@gmail.com หรือโทร 02-116-4125'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -269,21 +424,52 @@ export default function ContactSection() {
               </div>
 
               {submitted ? (
-                <div className="py-12 px-6 text-center space-y-4">
+                <div className="py-10 px-4 sm:px-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
                   <div className="w-16 h-16 rounded-full bg-emerald-950/80 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
-                  <h4 className="text-2xl font-bold text-white">ได้รับข้อมูลเรียบร้อยแล้ว</h4>
+                  <div>
+                    <h4 className="text-2xl font-bold text-white">ได้รับข้อมูลเรียบร้อยแล้ว</h4>
+                    <div className="inline-flex items-center space-x-1.5 px-3 py-1 mt-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                      <span>✓ ส่งข้อมูลไปยัง email: supotmeskp@gmail.com แล้ว</span>
+                    </div>
+                  </div>
                   <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-                    ขอบพระคุณที่ให้ความไว้วางใจ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ทีมงานวิศวกรจะตรวจสอบรายละเอียดและติดต่อกลับตามเบอร์โทรศัพท์หรืออีเมลที่ท่านระบุโดยเร็วที่สุด
+                    ขอบพระคุณที่ให้ความไว้วางใจ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ทีมงานวิศวกรจะตรวจสอบรายละเอียดโครงการ{submittedData?.filesCount ? ` พร้อมไฟล์แนบ ${submittedData.filesCount} ไฟล์` : ''} และติดต่อกลับหาท่านโดยเร็วที่สุด
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setSubmitted(false)}
-                    className="mt-4 px-6 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-slate-200 hover:text-white font-medium transition-colors"
-                  >
-                    ส่งข้อมูลโครงการเพิ่มเติม
-                  </button>
+
+                  {submittedData && (
+                    <div className="max-w-md mx-auto p-4 rounded-xl bg-skp-navy-deep border border-skp-navy-border text-left text-xs space-y-2 font-mono">
+                      <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
+                        <span className="text-slate-400 font-sans">ผู้ติดต่อ:</span>
+                        <span className="text-white font-medium">{submittedData.name} ({submittedData.company})</span>
+                      </div>
+                      <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
+                        <span className="text-slate-400 font-sans">เบอร์โทรศัพท์:</span>
+                        <span className="text-skp-cyan font-bold">{submittedData.phone}</span>
+                      </div>
+                      {submittedData.email && (
+                        <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
+                          <span className="text-slate-400 font-sans">อีเมล:</span>
+                          <span className="text-slate-200">{submittedData.email}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-slate-300 pt-0.5">
+                        <span className="text-slate-400 font-sans">ไฟล์ที่แนบ:</span>
+                        <span className="text-emerald-400 font-semibold">{submittedData.filesCount} ไฟล์</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSubmitted(false)}
+                      className="px-6 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-slate-200 hover:text-white hover:border-skp-cyan/50 font-medium transition-colors"
+                    >
+                      ส่งข้อมูลโครงการเพิ่มเติม
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4 text-left">
@@ -369,7 +555,7 @@ export default function ContactSection() {
                       รายละเอียดโครงการ / สถานที่ตั้งโครงการ
                     </label>
                     <textarea 
-                      rows={4}
+                      rows={3}
                       value={formData.message}
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
                       placeholder="ระบุขนาดโครงการ เช่น กำลังไฟฟ้าที่ต้องการ, พื้นที่อาคาร, สถานที่ตั้ง, หรือกำหนดเวลาส่งมอบงาน..."
@@ -377,14 +563,147 @@ export default function ContactSection() {
                     />
                   </div>
 
+                  {/* File Upload Component */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-300">
+                        แนบไฟล์ประกอบ (PDF, Excel, Word, รูปภาพ, AutoCAD)
+                      </label>
+                      <span className="text-[11px] font-mono text-slate-400">
+                        (ไม่บังคับ • สูงสุด 10 ไฟล์ รวมไม่เกิน 15MB)
+                      </span>
+                    </div>
+
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer group ${
+                        isDragging 
+                          ? 'border-skp-cyan bg-skp-cyan/10' 
+                          : 'border-skp-navy-border hover:border-skp-cyan/70 bg-skp-navy-deep/60'
+                      }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.xls,.xlsx,.csv,.doc,.docx,.jpg,.jpeg,.png,.webp,.dwg,.dxf,.dwf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="w-10 h-10 rounded-full bg-skp-navy-card border border-skp-navy-border flex items-center justify-center text-skp-cyan group-hover:scale-105 transition-transform">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <span className="text-xs sm:text-sm font-semibold text-white group-hover:text-skp-cyan transition-colors">
+                            คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
+                          </span>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            รองรับไฟล์ PDF, Excel, Word, AutoCAD (.dwg / .dxf) และรูปภาพ
+                          </p>
+                        </div>
+
+                        {/* Supported badges */}
+                        <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">PDF</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Excel (.xlsx/.xls)</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">Word (.docx/.doc)</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">Picture</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">AutoCAD (.dwg/.dxf)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* File validation error */}
+                    {fileError && (
+                      <div className="mt-2 text-xs text-rose-400 flex items-center space-x-1.5 bg-rose-950/40 p-2.5 rounded-lg border border-rose-800/60">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{fileError}</span>
+                      </div>
+                    )}
+
+                    {/* Attached files list */}
+                    {files.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs text-slate-300 px-1 font-mono">
+                          <span>ไฟล์แนบ ({files.length} รายการ):</span>
+                          <span className={totalFileSize > MAX_TOTAL_SIZE ? 'text-rose-400 font-bold' : 'text-skp-cyan'}>
+                            รวม {formatFileSize(totalFileSize)} / สูงสุด 15 MB
+                          </span>
+                        </div>
+
+                        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                          {files.map((file, idx) => {
+                            const badge = getFileBadge(file.name);
+                            return (
+                              <div
+                                key={`${file.name}-${idx}`}
+                                className="flex items-center justify-between p-2 rounded-lg bg-skp-navy-deep border border-skp-navy-border hover:border-skp-cyan/30 text-xs transition-colors"
+                              >
+                                <div className="flex items-center space-x-2 min-w-0 flex-1 mr-2">
+                                  <span className={`px-1.5 py-0.5 text-[9px] font-mono font-bold rounded border ${badge.color} shrink-0`}>
+                                    {badge.label}
+                                  </span>
+                                  <span className="text-slate-200 truncate font-medium" title={file.name}>
+                                    {file.name}
+                                  </span>
+                                  <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                                    ({formatFileSize(file.size)})
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeFile(idx);
+                                  }}
+                                  className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors shrink-0"
+                                  title="ลบไฟล์นี้"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submission Error Banner */}
+                  {submitError && (
+                    <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-800 text-xs text-rose-300 space-y-1.5">
+                      <div className="flex items-center space-x-2 font-semibold">
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>{submitError}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-300">
+                        หากระบบมีปัญหา สามารถส่งไฟล์และรายละเอียดโดยตรงได้ที่อีเมล:{' '}
+                        <a 
+                          href="mailto:supotmeskp@gmail.com?subject=ขอใบเสนอราคา%20/%20ปรึกษางาน" 
+                          className="text-skp-cyan underline font-mono"
+                        >
+                          supotmeskp@gmail.com
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || totalFileSize > MAX_TOTAL_SIZE}
                       className="w-full py-3.5 px-6 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white font-semibold text-sm shadow-xl shadow-skp-red/30 border border-skp-red-hover transition-all flex items-center justify-center group disabled:opacity-50"
                     >
                       {loading ? (
-                        <span>กำลังส่งข้อมูล...</span>
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          <span>กำลังส่งข้อมูลและแนบไฟล์ไปยัง supotmeskp@gmail.com...</span>
+                        </div>
                       ) : (
                         <>
                           <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
@@ -396,7 +715,7 @@ export default function ContactSection() {
 
                   <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-400 pt-2 font-mono">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ข้อมูลของท่านจะถูกเก็บเป็นความลับตามนโยบายคุ้มครองข้อมูลของบริษัท</span>
+                    <span>ข้อมูลและไฟล์แนบจะถูกส่งตรงไปยัง email: supotmeskp@gmail.com อย่างปลอดภัย</span>
                   </div>
                 </form>
               )}
