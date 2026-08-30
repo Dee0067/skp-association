@@ -203,34 +203,57 @@ export async function POST(request: NextRequest) {
         relayFormData.append('attachment', file, file.name);
       }
 
+      const origin = request.headers.get('origin') || 'https://skpassociation.co.th';
+      const referer = request.headers.get('referer') || 'https://skpassociation.co.th/';
+
       const relayRes = await fetch(`https://formsubmit.co/ajax/${TARGET_EMAIL}`, {
         method: 'POST',
         body: relayFormData,
         headers: {
           Accept: 'application/json',
+          Origin: origin,
+          Referer: referer,
         },
       });
 
-      if (relayRes.ok) {
+      const relayData = await relayRes.json().catch(() => null);
+
+      if (relayData) {
+        if (relayData.success === 'true' || relayData.success === true) {
+          return NextResponse.json({
+            success: true,
+            message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
+            recipient: TARGET_EMAIL,
+            filesCount: files.length,
+          });
+        }
+
+        if (typeof relayData.message === 'string' && relayData.message.toLowerCase().includes('activation')) {
+          return NextResponse.json({
+            success: false,
+            needsActivation: true,
+            error: 'ระบบต้องการการกดยืนยันครั้งแรก (One-time Activation): กรุณาเปิดอีเมล supot.meskp@gmail.com (ตรวจดูในกล่องจดหมาย หรือ Junk/Spam) และกดปุ่ม "Activate Form" เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร',
+            recipient: TARGET_EMAIL,
+          }, { status: 400 });
+        }
+
         return NextResponse.json({
-          success: true,
-          message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
+          success: false,
+          error: relayData.message || 'ผู้ให้บริการอีเมลปฏิเสธการส่งข้อความ',
           recipient: TARGET_EMAIL,
-          filesCount: files.length,
-        });
+        }, { status: 502 });
       }
-    } catch (relayError) {
+    } catch (relayError: any) {
       console.error('Relay error:', relayError);
     }
 
-    // Return success response with mailto fallback info in case of third party relay limits
-    return NextResponse.json({
-      success: true,
-      message: 'บันทึกข้อมูลเรียบร้อยแล้ว',
-      recipient: TARGET_EMAIL,
-      filesCount: files.length,
-    });
-
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาติดต่อ supot.meskp@gmail.com หรือโทร 02-116-4125 โดยตรง' 
+      },
+      { status: 500 }
+    );
   } catch (error: any) {
     console.error('Error in /api/quotation:', error);
     return NextResponse.json(

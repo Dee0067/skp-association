@@ -674,20 +674,35 @@ export default function ContactSection() {
                     )}
                   </div>
 
-                  {/* Submission Error Banner */}
+                  {/* Submission Error or Activation Banner */}
                   {submitError && (
-                    <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-800 text-xs text-rose-300 space-y-1.5">
-                      <div className="flex items-center space-x-2 font-semibold">
-                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                        <span>{submitError}</span>
+                    <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/50 text-xs text-amber-200 space-y-2.5 animate-in fade-in">
+                      <div className="flex items-start space-x-2.5">
+                        <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold text-white text-sm">
+                            แจ้งเตือนการส่งข้อมูล
+                          </p>
+                          <p className="text-slate-200 leading-relaxed">
+                            {submitError}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-300">
-                        หากระบบมีปัญหา สามารถส่งไฟล์และรายละเอียดโดยตรงได้ที่อีเมล:{' '}
+
+                      <div className="pt-2 border-t border-amber-500/30 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] text-slate-300">
+                          หรือส่งข้อมูลพร้อมไฟล์แนบหาทีมวิศวกรโดยตรงได้ทันที:
+                        </span>
                         <a 
-                          href="mailto:supot.meskp@gmail.com?subject=ขอใบเสนอราคา%20/%20ปรึกษางาน" 
-                          className="text-skp-cyan underline font-mono"
+                          href={`mailto:supot.meskp@gmail.com?subject=${encodeURIComponent(
+                            `ขอใบเสนอราคา / ปรึกษางาน - ${formData.name || 'ลูกค้า'} (${formData.company || '-'})`
+                          )}&body=${encodeURIComponent(
+                            `เรียน ทีมวิศวกร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด\n\nชื่อผู้ติดต่อ: ${formData.name}\nบริษัท/องค์กร: ${formData.company}\nเบอร์โทร: ${formData.phone}\nอีเมล: ${formData.email}\nขอบข่ายงาน: ${formData.serviceType}\n\nรายละเอียดโครงการ:\n${formData.message}\n\n(กรุณาแนบไฟล์แบบแปลนหรือเอกสารเพิ่มเติมในอีเมลนี้)`
+                          )}`}
+                          className="px-3 py-1.5 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white font-semibold text-xs inline-flex items-center space-x-1.5 shadow transition-colors"
                         >
-                          supot.meskp@gmail.com
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>เปิดส่งทางอีเมล supot.meskp@gmail.com</span>
                         </a>
                       </div>
                     </div>
