@@ -197,7 +197,9 @@ export default function ContactSection() {
         clientFormData.append('ชื่อผู้ติดต่อ', formData.name);
         clientFormData.append('บริษัท_องค์กร', formData.company);
         clientFormData.append('เบอร์โทรศัพท์', formData.phone);
-        if (formData.email) clientFormData.append('อีเมล', formData.email);
+        clientFormData.append('อีเมล', formData.email);
+        clientFormData.append('_replyto', formData.email);
+        clientFormData.append('_cc', formData.email);
         clientFormData.append('ขอบข่ายงานวิศวกรรม', formData.serviceType);
         clientFormData.append('รายละเอียดโครงการ', formData.message);
         clientFormData.append('_template', 'table');
@@ -476,8 +478,15 @@ export default function ContactSection() {
                   </div>
                   <div>
                     <h4 className="text-2xl font-bold text-white">ได้รับข้อมูลเรียบร้อยแล้ว</h4>
-                    <div className="inline-flex items-center space-x-1.5 px-3 py-1 mt-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-                      <span>✓ ส่งข้อมูลไปยัง email: supot.meskp@gmail.com แล้ว</span>
+                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                        ✓ ส่งข้อมูลไปยัง supot.meskp@gmail.com แล้ว
+                      </span>
+                      {submittedData?.email && (
+                        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-mono">
+                          ✓ ส่งสำเนาหลักฐานไปยัง {submittedData.email} แล้ว
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
@@ -494,15 +503,41 @@ export default function ContactSection() {
                         <span className="text-slate-400 font-sans">เบอร์โทรศัพท์:</span>
                         <span className="text-skp-cyan font-bold">{submittedData.phone}</span>
                       </div>
-                      {submittedData.email && (
-                        <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
-                          <span className="text-slate-400 font-sans">อีเมล:</span>
-                          <span className="text-slate-200">{submittedData.email}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
+                        <span className="text-slate-400 font-sans">อีเมลผู้ส่ง (รับสำเนา):</span>
+                        <span className="text-emerald-300 font-semibold">{submittedData.email}</span>
+                      </div>
                       <div className="flex justify-between text-slate-300 pt-0.5">
                         <span className="text-slate-400 font-sans">ไฟล์ที่แนบ:</span>
                         <span className="text-emerald-400 font-semibold">{submittedData.filesCount} ไฟล์</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* in:sent Direct Action Card */}
+                  {submittedData && (
+                    <div className="max-w-md mx-auto p-4 rounded-xl bg-skp-navy-card/90 border border-skp-cyan/30 text-left space-y-2">
+                      <div className="flex items-center space-x-2 text-xs font-bold text-white">
+                        <Mail className="w-4 h-4 text-skp-cyan" />
+                        <span>ต้องการบันทึกลงในกล่อง "ส่งแล้ว" (in:sent) ใน Gmail ของท่าน?</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        ระบบจัดเตรียมแบบร่างที่กรอกข้อมูลโครงการและส่งถึง <strong>supot.meskp@gmail.com</strong> ไว้ให้แล้ว ท่านสามารถกดปุ่มด้านล่างเพื่อเปิดส่งผ่าน Gmail ของท่านได้ทันที โดยอีเมลจะถูกบันทึกไว้ใน <strong>in:sent</strong> ของท่านอย่างสมบูรณ์
+                      </p>
+                      <div className="pt-1">
+                        <a
+                          href={`https://mail.google.com/mail/?view=cm&fs=1&to=supot.meskp@gmail.com&su=${encodeURIComponent(
+                            `[ขอใบเสนอราคา] ${submittedData.name} - ${submittedData.company}`
+                          )}&body=${encodeURIComponent(
+                            `เรียน ทีมวิศวกร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด\n\nชื่อผู้ติดต่อ: ${submittedData.name}\nบริษัท/หน่วยงาน: ${submittedData.company}\nเบอร์โทรศัพท์: ${submittedData.phone}\nอีเมล: ${submittedData.email}\nขอบข่ายงาน: ${submittedData.serviceType}\n\n(ข้อมูลถูกส่งผ่านระบบเว็บไซต์เรียบร้อยแล้ว และส่งผ่าน Gmail เพื่อบันทึกลงใน Sent Items)`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white text-xs font-semibold inline-flex items-center space-x-2 shadow-lg transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>เปิดส่งใน Gmail (บันทึกลง in:sent ทันที)</span>
+                        </a>
                       </div>
                     </div>
                   )}
@@ -566,10 +601,11 @@ export default function ContactSection() {
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        อีเมล (Email Address)
+                        อีเมล (Email Address) <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="email" 
+                        required
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         placeholder="example@company.com"

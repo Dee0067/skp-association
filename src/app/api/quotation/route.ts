@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
     const serviceType = (formData.get('serviceType') as string) || 'electrical';
     const message = (formData.get('message') as string) || 'ไม่ได้ระบุรายละเอียดเพิ่มเติม';
 
+    if (!email || !email.includes('@')) {
+      return NextResponse.json(
+        { success: false, error: 'กรุณากรอกอีเมล (Email Address) ให้ถูกต้องครบถ้วน' },
+        { status: 400 }
+      );
+    }
+
     const serviceLabel = serviceTypeLabels[serviceType] || serviceType;
     const nowBangkok = new Date().toLocaleString('th-TH', { 
       timeZone: 'Asia/Bangkok',
@@ -170,7 +177,8 @@ export async function POST(request: NextRequest) {
       await transporter.sendMail({
         from: `"${name} (ผ่านเว็บ SKP)" <${smtpUser}>`,
         to: TARGET_EMAIL,
-        replyTo: email || undefined,
+        cc: email,
+        replyTo: email,
         subject,
         html: htmlBody,
         attachments,
@@ -191,7 +199,9 @@ export async function POST(request: NextRequest) {
       relayFormData.append('ชื่อผู้ติดต่อ', name);
       relayFormData.append('บริษัท_องค์กร', company);
       relayFormData.append('เบอร์โทรศัพท์', phone);
-      if (email) relayFormData.append('อีเมล', email);
+      relayFormData.append('อีเมล', email);
+      relayFormData.append('_replyto', email);
+      relayFormData.append('_cc', email);
       relayFormData.append('ขอบข่ายงานวิศวกรรม', serviceLabel);
       relayFormData.append('รายละเอียดโครงการ', message);
       relayFormData.append('วันเวลาส่งข้อมูล', nowBangkok);
