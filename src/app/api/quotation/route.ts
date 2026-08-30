@@ -216,30 +216,36 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const relayData = await relayRes.json().catch(() => null);
+      const relayText = await relayRes.text();
+      let relayData: any = null;
+      try {
+        relayData = JSON.parse(relayText);
+      } catch {
+        console.warn('FormSubmit returned non-JSON:', relayRes.status, relayText.slice(0, 150));
+      }
 
-      if (relayData) {
-        if (relayData.success === 'true' || relayData.success === true) {
-          return NextResponse.json({
-            success: true,
-            message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
-            recipient: TARGET_EMAIL,
-            filesCount: files.length,
-          });
-        }
+      if (relayData && (relayData.success === 'true' || relayData.success === true)) {
+        return NextResponse.json({
+          success: true,
+          message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
+          recipient: TARGET_EMAIL,
+          filesCount: files.length,
+        });
+      }
 
-        if (typeof relayData.message === 'string' && relayData.message.toLowerCase().includes('activation')) {
-          return NextResponse.json({
-            success: false,
-            needsActivation: true,
-            error: 'ระบบต้องการการกดยืนยันครั้งแรก (One-time Activation): กรุณาเปิดอีเมล supot.meskp@gmail.com (ตรวจดูในกล่องจดหมาย หรือ Junk/Spam) และกดปุ่ม "Activate Form" เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร',
-            recipient: TARGET_EMAIL,
-          }, { status: 400 });
-        }
-
+      if (relayText.toLowerCase().includes('activation')) {
         return NextResponse.json({
           success: false,
-          error: relayData.message || 'ผู้ให้บริการอีเมลปฏิเสธการส่งข้อความ',
+          needsActivation: true,
+          error: 'ระบบต้องการการกดยืนยันครั้งแรก (One-time Activation): กรุณาเปิดอีเมล supot.meskp@gmail.com (ตรวจดูในกล่องจดหมาย Inbox หรือ Junk / Spam) แล้วกดปุ่ม "Activate Form" จาก FormSubmit เพียงครั้งเดียว เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร',
+          recipient: TARGET_EMAIL,
+        }, { status: 400 });
+      }
+
+      if (!relayRes.ok) {
+        return NextResponse.json({
+          success: false,
+          error: relayData?.message || `ระบบส่งต่ออีเมลตอบกลับสถานะ ${relayRes.status}`,
           recipient: TARGET_EMAIL,
         }, { status: 502 });
       }
@@ -250,7 +256,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'ไม่สามารถส่งอีเมลได้ในขณะนี้ กรุณาติดต่อ supot.meskp@gmail.com หรือโทร 02-116-4125 โดยตรง' 
+        error: 'ไม่สามารถส่งอีเมลอัตโนมัติได้ในขณะนี้ กรุณาติดต่อ supot.meskp@gmail.com หรือโทร 02-116-4125 โดยตรง' 
       },
       { status: 500 }
     );

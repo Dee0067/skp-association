@@ -188,7 +188,7 @@ export default function ContactSection() {
 
       const result = await res.json().catch(() => null);
 
-      if (!res.ok && (!result || !result.success)) {
+      if (!res.ok || !result || !result.success) {
         throw new Error(result?.error || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
       }
 
