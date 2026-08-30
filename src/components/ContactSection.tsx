@@ -181,12 +181,58 @@ export default function ContactSection() {
         data.append('files', file);
       }
 
-      const res = await fetch('/api/quotation', {
+      // 1. Try serverless API route first (which uses direct Gmail SMTP if configured)
+      let res = await fetch('/api/quotation', {
         method: 'POST',
         body: data,
       });
 
-      const result = await res.json().catch(() => null);
+      let result = await res.json().catch(() => null);
+
+      // 2. If serverless API did not succeed, fallback to direct browser submission to FormSubmit
+      if (!res.ok || !result || !result.success) {
+        console.log('Serverless relay not configured, attempting direct client submission...');
+        const clientFormData = new FormData();
+        clientFormData.append('_subject', `[ขอใบเสนอราคา] ${formData.name} - ${formData.company}`);
+        clientFormData.append('ชื่อผู้ติดต่อ', formData.name);
+        clientFormData.append('บริษัท_องค์กร', formData.company);
+        clientFormData.append('เบอร์โทรศัพท์', formData.phone);
+        if (formData.email) clientFormData.append('อีเมล', formData.email);
+        clientFormData.append('ขอบข่ายงานวิศวกรรม', formData.serviceType);
+        clientFormData.append('รายละเอียดโครงการ', formData.message);
+        clientFormData.append('_template', 'table');
+        clientFormData.append('_captcha', 'false');
+
+        for (const file of files) {
+          clientFormData.append('attachment', file, file.name);
+        }
+
+        try {
+          const directRes = await fetch('https://formsubmit.co/ajax/supot.meskp@gmail.com', {
+            method: 'POST',
+            body: clientFormData,
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          const directData = await directRes.json().catch(() => null);
+          if (directData) {
+            if (directData.success === 'true' || directData.success === true) {
+              result = { success: true };
+              res = { ok: true } as any;
+            } else if (typeof directData.message === 'string' && directData.message.toLowerCase().includes('activation')) {
+              throw new Error(
+                'ระบบ FormSubmit ต้องการการยืนยันครั้งแรก (One-time Activation): ได้มีอีเมลหัวข้อ "Activate Form" ส่งไปยัง supot.meskp@gmail.com แล้ว กรุณาเปิดกล่องจดหมาย Inbox (หรือโฟลเดอร์ Junk/Spam) และคลิกปุ่ม Activate Form 1 ครั้ง เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร'
+              );
+            } else {
+              throw new Error(directData.message || 'ระบบไม่สามารถส่งข้อความได้');
+            }
+          }
+        } catch (directErr: any) {
+          throw new Error(directErr.message || result?.error || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
+        }
+      }
 
       if (!res.ok || !result || !result.success) {
         throw new Error(result?.error || 'เกิดข้อผิดพลาดในการส่งข้อมูล');
