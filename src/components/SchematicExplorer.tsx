@@ -210,6 +210,7 @@ export default function SchematicExplorer() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [previewPersonnel, setPreviewPersonnel] = useState<Personnel | null>(null);
 
   // Filtered personnel
   const filteredPersonnel = activeTab === 'all'
@@ -308,26 +309,30 @@ export default function SchematicExplorer() {
         {/* Card Header: Avatar & Badges */}
         <div>
           <div className="flex items-start gap-3.5 mb-3.5">
-            {/* Avatar / Photo */}
-            <div className="relative flex-shrink-0">
+            {/* Avatar / Photo Container with prominent Hover Zoom Animation */}
+            <div
+              className="relative flex-shrink-0 group/avatar z-20 cursor-pointer"
+              onClick={() => p.photo && setPreviewPersonnel(p)}
+              title={language === 'en' ? `Click to enlarge photo of ${p.nameEn}` : `คลิกเพื่อดูรูปขยายของ ${p.nameTh}`}
+            >
               {p.photo ? (
-                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 border-skp-cyan/40 group-hover:border-skp-cyan transition-colors bg-slate-900 shadow-inner">
+                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 border-skp-cyan/50 group-hover/avatar:border-skp-cyan group-hover/avatar:scale-[2.0] sm:group-hover/avatar:scale-[2.3] group-hover/avatar:z-50 group-hover/avatar:shadow-2xl group-hover/avatar:shadow-cyan-500/50 group-hover/avatar:ring-4 group-hover/avatar:ring-skp-cyan/40 transition-all duration-300 ease-out origin-top-left bg-slate-900 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.photo}
                     alt={language === 'en' ? p.nameEn : p.nameTh}
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover object-top transition-transform duration-300 group-hover/avatar:scale-105"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent group-hover/avatar:opacity-0 transition-opacity" />
                 </div>
               ) : (
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-indigo-900/60 to-skp-navy-card border-2 border-indigo-400/30 flex items-center justify-center text-indigo-300 group-hover:border-indigo-400 transition-colors shadow-inner">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-indigo-900/60 to-skp-navy-card border-2 border-indigo-400/30 flex items-center justify-center text-indigo-300 group-hover/avatar:border-indigo-400 group-hover/avatar:scale-125 transition-all duration-300 shadow-inner">
                   <Compass className="w-7 h-7" />
                 </div>
               )}
               {/* Online / Active Indicator */}
-              <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
+              <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 pointer-events-none group-hover/avatar:opacity-0 transition-opacity">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-skp-navy-dark" />
               </span>
@@ -866,6 +871,76 @@ export default function SchematicExplorer() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+          {/* PHOTO PREVIEW LIGHTBOX MODAL */}
+      {previewPersonnel && previewPersonnel.photo && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewPersonnel(null)}
+        >
+          <div
+            className="relative max-w-sm w-full bg-skp-navy-card border-2 border-skp-cyan/60 rounded-3xl p-6 shadow-2xl shadow-cyan-500/20 text-center animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setPreviewPersonnel(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-skp-navy-deep/80 hover:bg-rose-950 text-slate-300 hover:text-rose-400 border border-skp-navy-border transition-colors"
+              title={language === 'en' ? 'Close' : 'ปิด'}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* High-Res Photo */}
+            <div className="w-48 h-48 sm:w-56 sm:h-56 mx-auto rounded-2xl overflow-hidden border-4 border-skp-cyan shadow-xl shadow-cyan-500/30 mb-5 bg-slate-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewPersonnel.photo}
+                alt={language === 'en' ? previewPersonnel.nameEn : previewPersonnel.nameTh}
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+
+            {/* Role & Name */}
+            <span className="inline-block text-[11px] font-mono uppercase px-3 py-0.5 rounded-full font-semibold bg-skp-cyan/15 border border-skp-cyan/40 text-skp-cyan mb-2">
+              {language === 'en' ? previewPersonnel.roleEn : previewPersonnel.roleTh}
+            </span>
+
+            <h3 className="text-xl font-bold text-white mb-1">
+              {language === 'en' ? previewPersonnel.nameEn : previewPersonnel.nameTh}
+            </h3>
+
+            {language === 'th' && (
+              <p className="text-xs text-slate-400 font-mono mb-4">
+                {previewPersonnel.nameEn}
+              </p>
+            )}
+
+            {/* Quick Contact Buttons */}
+            <div className="flex items-center justify-center gap-3 pt-2">
+              {previewPersonnel.phone && (
+                <a
+                  href={`tel:${previewPersonnel.phone.replace(/[^0-9+]/g, '')}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold hover:bg-emerald-900 transition-colors"
+                >
+                  <Phone className="w-4 h-4 text-emerald-400" />
+                  <span>{previewPersonnel.phone}</span>
+                </a>
+              )}
+
+              {previewPersonnel.email && (
+                <a
+                  href={`mailto:${previewPersonnel.email}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-950/80 border border-sky-500/40 text-sky-300 text-xs font-mono hover:bg-sky-900 transition-colors"
+                >
+                  <Mail className="w-4 h-4 text-sky-400" />
+                  <span>{language === 'en' ? 'Email' : 'ส่งอีเมล'}</span>
+                </a>
+              )}
+            </div>
           </div>
         </div>
       )}
