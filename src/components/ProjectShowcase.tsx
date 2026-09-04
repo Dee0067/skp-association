@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, 
   Zap, 
@@ -55,9 +55,51 @@ export default function ProjectShowcase() {
   // State for Lightbox Modal
   const [modalProject, setModalProject] = useState<ProjectItem | null>(null);
   const [modalPhotoIndex, setModalPhotoIndex] = useState<number>(0);
+  const [modalDirection, setModalDirection] = useState<'next' | 'prev' | 'fade'>('fade');
+
+  const modalThumbnailsRef = useRef<HTMLDivElement>(null);
+  const cardThumbnailsRef = useRef<Record<number, HTMLDivElement | null>>({});
 
   const { language } = useLanguage();
   const t = translations[language].portfolio;
+
+  // Auto-scroll modal thumbnail strip to keep active photo centered
+  useEffect(() => {
+    if (modalProject?.gallery && modalThumbnailsRef.current) {
+      const activeThumb = modalThumbnailsRef.current.children[modalPhotoIndex] as HTMLElement;
+      if (activeThumb) {
+        activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [modalPhotoIndex, modalProject]);
+
+  // Auto-scroll card thumbnail strip when changing photo on the card
+  useEffect(() => {
+    const activeIdx = cardPhotoIndex[1] || 0;
+    const cardStrip = cardThumbnailsRef.current[1];
+    if (cardStrip && cardStrip.children[activeIdx]) {
+      const activeBtn = cardStrip.children[activeIdx] as HTMLElement;
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [cardPhotoIndex]);
+
+  // Modal navigation handlers with directional animations
+  const handleModalNext = () => {
+    if (!modalProject?.gallery) return;
+    setModalDirection('next');
+    setModalPhotoIndex((prev) => (prev < modalProject.gallery!.length - 1 ? prev + 1 : 0));
+  };
+
+  const handleModalPrev = () => {
+    if (!modalProject?.gallery) return;
+    setModalDirection('prev');
+    setModalPhotoIndex((prev) => (prev > 0 ? prev - 1 : modalProject.gallery!.length - 1));
+  };
+
+  const handleModalSelect = (idx: number) => {
+    setModalDirection(idx > modalPhotoIndex ? 'next' : 'prev');
+    setModalPhotoIndex(idx);
+  };
 
   // Handle keyboard navigation in modal (ESC to close, Left/Right arrows to navigate)
   useEffect(() => {
@@ -68,9 +110,11 @@ export default function ProjectShowcase() {
         setModalProject(null);
       } else if (e.key === 'ArrowLeft') {
         const total = modalProject.gallery?.length || 1;
+        setModalDirection('prev');
         setModalPhotoIndex((prev) => (prev > 0 ? prev - 1 : total - 1));
       } else if (e.key === 'ArrowRight') {
         const total = modalProject.gallery?.length || 1;
+        setModalDirection('next');
         setModalPhotoIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
       }
     };
@@ -380,6 +424,7 @@ export default function ProjectShowcase() {
   const openModalAtPhoto = (project: ProjectItem, photoIdx: number = 0) => {
     setModalProject(project);
     setModalPhotoIndex(photoIdx);
+    setModalDirection('fade');
   };
 
   return (
@@ -502,14 +547,16 @@ export default function ProjectShowcase() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
+                        key={currentImgUrl}
                         src={currentImgUrl} 
                         alt={project.title} 
-                        className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500 animate-photo-fade"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-skp-navy-card via-skp-navy-card/20 to-transparent" />
+                      <div key={`card-scan-${currentImgUrl}`} className="scanline-flash" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-skp-navy-card via-skp-navy-card/20 to-transparent pointer-events-none" />
                       
                       {/* Real Photo Badge */}
-                      <div className="absolute top-3 left-3 flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium bg-skp-navy-deep/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm shadow-md">
+                      <div className="absolute top-3 left-3 flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium bg-skp-navy-deep/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm shadow-md transition-transform duration-300 group-hover/img:scale-105">
                         <Camera className="w-3 h-3 text-emerald-400" />
                         <span>
                           {hasGallery
@@ -519,14 +566,51 @@ export default function ProjectShowcase() {
                       </div>
 
                       {/* Zoom hint badge */}
-                      <div className="absolute top-3 right-3 flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-mono bg-skp-navy-deep/90 text-skp-cyan border border-skp-cyan/30 backdrop-blur-sm opacity-90 group-hover/img:opacity-100 transition-opacity">
+                      <div className="absolute top-3 right-3 flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-mono bg-skp-navy-deep/90 text-skp-cyan border border-skp-cyan/30 backdrop-blur-sm opacity-90 group-hover/img:opacity-100 transition-all duration-300 group-hover/img:scale-105">
                         <ZoomIn className="w-3.5 h-3.5 mr-1" />
                         <span>{t.viewPhotoBtn || 'คลิกดูภาพขยาย'}</span>
                       </div>
 
+                      {/* Quick Browse Buttons on Card Image */}
+                      {hasGallery && project.gallery && project.gallery.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardPhotoIndex(prev => ({
+                                ...prev,
+                                [project.id]: currentPhotoIdx > 0 ? currentPhotoIdx - 1 : project.gallery!.length - 1
+                              }));
+                            }}
+                            className="absolute left-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-skp-navy-deep/85 hover:bg-skp-red text-white border border-skp-navy-border shadow-xl backdrop-blur-sm opacity-75 sm:opacity-0 sm:group-hover/img:opacity-100 transition-all duration-300 hover:scale-115 active:scale-90 z-20"
+                            aria-label="Previous photo on card"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardPhotoIndex(prev => ({
+                                ...prev,
+                                [project.id]: currentPhotoIdx < project.gallery!.length - 1 ? currentPhotoIdx + 1 : 0
+                              }));
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-skp-navy-deep/85 hover:bg-skp-red text-white border border-skp-navy-border shadow-xl backdrop-blur-sm opacity-75 sm:opacity-0 sm:group-hover/img:opacity-100 transition-all duration-300 hover:scale-115 active:scale-90 z-20"
+                            aria-label="Next photo on card"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+
                       {/* Subsystem caption overlay on image */}
                       {currentSubsystemTitle && (
-                        <div className="absolute bottom-3 left-3 right-3 bg-skp-navy-deep/95 border border-skp-navy-border/80 backdrop-blur-md rounded-lg p-2.5 text-xs text-white shadow-lg">
+                        <div 
+                          key={`card-caption-${currentPhotoIdx}`}
+                          className="absolute bottom-3 left-3 right-3 bg-skp-navy-deep/95 border border-skp-navy-border/80 backdrop-blur-md rounded-lg p-2.5 text-xs text-white shadow-lg animate-text-reveal"
+                        >
                           <div className="flex items-center justify-between font-mono text-[10px] text-skp-cyan mb-1">
                             <span>
                               {language === 'en'
@@ -544,7 +628,10 @@ export default function ProjectShowcase() {
 
                     {/* Interactive Thumbnail Selector for Project 1 (Flagship Gallery) */}
                     {hasGallery && project.gallery && (
-                      <div className="p-3 bg-skp-navy-dark/95 border-t border-skp-navy-border/80 flex items-center space-x-2 overflow-x-auto scrollbar-thin">
+                      <div 
+                        ref={(el) => { cardThumbnailsRef.current[project.id] = el; }}
+                        className="p-3 bg-skp-navy-dark/95 border-t border-skp-navy-border/80 flex items-center space-x-2.5 overflow-x-auto scrollbar-thin"
+                      >
                         {project.gallery.map((photo, pIdx) => (
                           <button
                             key={pIdx}
@@ -553,19 +640,24 @@ export default function ProjectShowcase() {
                               e.stopPropagation();
                               setCardPhotoIndex(prev => ({ ...prev, [project.id]: pIdx }));
                             }}
-                            className={`relative shrink-0 w-14 sm:w-16 h-11 rounded-md overflow-hidden border-2 transition-all ${
+                            className={`relative shrink-0 w-14 sm:w-16 h-11 rounded-lg overflow-hidden border-2 transition-all duration-300 transform active:scale-95 ${
                               currentPhotoIdx === pIdx 
-                                ? 'border-skp-cyan scale-105 shadow-md shadow-skp-cyan/30 ring-1 ring-skp-cyan' 
-                                : 'border-skp-navy-border opacity-60 hover:opacity-100'
+                                ? 'border-skp-cyan scale-105 shadow-md shadow-skp-cyan/40 ring-2 ring-skp-cyan/70 z-10' 
+                                : 'border-skp-navy-border/80 opacity-60 hover:opacity-100 hover:border-skp-cyan/50 hover:scale-102 hover:-translate-y-0.5'
                             }`}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img 
                               src={photo.url} 
                               alt={`Thumbnail ${pIdx + 1}`} 
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             />
-                            <span className="absolute bottom-0 right-0 px-1 py-0.2 bg-black/80 text-[9px] font-mono text-white">
+                            {currentPhotoIdx === pIdx && (
+                              <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-skp-cyan shadow-[0_0_6px_#38bdf8] animate-ping" />
+                            )}
+                            <span className={`absolute bottom-0 right-0 px-1.5 py-0.2 text-[9px] font-mono font-semibold transition-colors ${
+                              currentPhotoIdx === pIdx ? 'bg-skp-cyan text-black' : 'bg-black/80 text-white'
+                            }`}>
                               {pIdx + 1}
                             </span>
                           </button>
@@ -680,7 +772,7 @@ export default function ProjectShowcase() {
           onClick={() => setModalProject(null)}
         >
           <div 
-            className="relative max-w-5xl w-full bg-skp-navy-card border border-skp-navy-border rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]"
+            className="relative max-w-5xl w-full bg-skp-navy-card border border-skp-navy-border rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -703,14 +795,42 @@ export default function ProjectShowcase() {
               </button>
             </div>
 
-            {/* Modal Image Area with Navigation Arrows */}
-            <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[300px] max-h-[58vh]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={modalProject.gallery ? modalProject.gallery[modalPhotoIndex].url : modalProject.image} 
-                alt={modalProject.title} 
-                className="w-full h-full object-contain max-h-[58vh] select-none"
-              />
+            {/* Modal Top Progress Bar */}
+            {modalProject.gallery && modalProject.gallery.length > 1 && (
+              <div className="w-full bg-skp-navy-dark h-1 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-skp-cyan via-emerald-400 to-skp-cyan transition-all duration-300 ease-out shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                  style={{ width: `${((modalPhotoIndex + 1) / modalProject.gallery.length) * 100}%` }}
+                />
+              </div>
+            )}
+
+            {/* Modal Image Area with Directional Navigation Animations */}
+            <div className="relative flex-1 bg-black/95 flex items-center justify-center overflow-hidden min-h-[300px] max-h-[58vh]">
+              {/* Subtle ambient light */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.06),transparent_70%)] pointer-events-none" />
+
+              {/* Animated Image Wrapper */}
+              <div 
+                key={modalPhotoIndex} 
+                className={`w-full h-full flex items-center justify-center p-3 ${
+                  modalDirection === 'next' 
+                    ? 'animate-photo-next' 
+                    : modalDirection === 'prev' 
+                      ? 'animate-photo-prev' 
+                      : 'animate-photo-fade'
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={modalProject.gallery ? modalProject.gallery[modalPhotoIndex].url : modalProject.image} 
+                  alt={modalProject.title} 
+                  className="w-full h-full object-contain max-h-[56vh] select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+                />
+              </div>
+
+              {/* Shutter scanline flash on photo swap */}
+              <div key={`modal-scan-${modalPhotoIndex}`} className="scanline-flash" />
 
               {/* Prev / Next buttons for multi-photo gallery */}
               {modalProject.gallery && modalProject.gallery.length > 1 && (
@@ -719,50 +839,58 @@ export default function ProjectShowcase() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setModalPhotoIndex((prev) => (prev > 0 ? prev - 1 : modalProject.gallery!.length - 1));
+                      handleModalPrev();
                     }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-skp-navy-deep/80 hover:bg-skp-red text-white border border-skp-navy-border transition-all shadow-lg"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-skp-navy-deep/90 hover:bg-skp-red text-white border border-skp-navy-border/90 transition-all duration-200 shadow-xl hover:scale-110 active:scale-95 z-20 backdrop-blur-sm group"
                     aria-label="Previous photo"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
                   </button>
 
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setModalPhotoIndex((prev) => (prev < modalProject.gallery!.length - 1 ? prev + 1 : 0));
+                      handleModalNext();
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-skp-navy-deep/80 hover:bg-skp-red text-white border border-skp-navy-border transition-all shadow-lg"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-skp-navy-deep/90 hover:bg-skp-red text-white border border-skp-navy-border/90 transition-all duration-200 shadow-xl hover:scale-110 active:scale-95 z-20 backdrop-blur-sm group"
                     aria-label="Next photo"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </>
               )}
             </div>
 
-            {/* Modal Thumbnail Strip */}
+            {/* Modal Thumbnail Strip with Auto-Centering */}
             {modalProject.gallery && modalProject.gallery.length > 1 && (
-              <div className="px-6 py-2.5 bg-skp-navy-dark border-t border-skp-navy-border/80 flex items-center space-x-2 overflow-x-auto justify-start scrollbar-thin">
+              <div 
+                ref={modalThumbnailsRef}
+                className="px-6 py-2.5 bg-skp-navy-dark border-t border-skp-navy-border/80 flex items-center space-x-2.5 overflow-x-auto justify-start scrollbar-thin"
+              >
                 {modalProject.gallery.map((photo, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setModalPhotoIndex(idx)}
-                    className={`relative shrink-0 w-14 h-10 rounded-md overflow-hidden border-2 transition-all ${
+                    onClick={() => handleModalSelect(idx)}
+                    className={`relative shrink-0 w-14 sm:w-16 h-11 rounded-lg overflow-hidden border-2 transition-all duration-300 transform active:scale-95 ${
                       modalPhotoIndex === idx 
-                        ? 'border-skp-cyan ring-2 ring-skp-cyan/40 scale-105' 
-                        : 'border-skp-navy-border opacity-50 hover:opacity-90'
+                        ? 'border-skp-cyan ring-2 ring-skp-cyan/70 scale-105 shadow-[0_0_12px_rgba(56,189,248,0.5)] z-10' 
+                        : 'border-skp-navy-border/80 opacity-50 hover:opacity-100 hover:border-skp-cyan/40 hover:scale-102 hover:-translate-y-0.5'
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={photo.url} 
                       alt={`Thumb ${idx + 1}`} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300"
                     />
-                    <span className="absolute bottom-0 right-0 px-1 bg-black/80 text-[8px] font-mono text-white">
+                    {modalPhotoIndex === idx && (
+                      <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-skp-cyan shadow-[0_0_6px_#38bdf8] animate-ping" />
+                    )}
+                    <span className={`absolute bottom-0 right-0 px-1 text-[8px] font-mono font-semibold transition-colors ${
+                      modalPhotoIndex === idx ? 'bg-skp-cyan text-black' : 'bg-black/80 text-white'
+                    }`}>
                       {idx + 1}
                     </span>
                   </button>
@@ -786,26 +914,31 @@ export default function ProjectShowcase() {
                   <span>{modalProject.year}</span>
                 </div>
 
-                {/* Subsystem title in modal */}
-                {modalProject.gallery && (
-                  <div className="text-skp-cyan font-mono text-xs font-semibold">
-                    {language === 'en' ? 'Subsystem' : 'ระบบย่อย'} {modalPhotoIndex + 1}/{modalProject.gallery.length}: {
-                      language === 'en' 
-                        ? modalProject.gallery[modalPhotoIndex].subsystemEn 
-                        : modalProject.gallery[modalPhotoIndex].subsystemTh
-                    }
-                  </div>
-                )}
+                {/* Animated Subsystem details */}
+                <div key={modalPhotoIndex} className="animate-text-reveal space-y-1.5">
+                  {modalProject.gallery && (
+                    <div className="text-skp-cyan font-mono text-xs font-semibold flex items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-skp-cyan mr-1.5 animate-pulse shrink-0" />
+                      <span>
+                        {language === 'en' ? 'Subsystem' : 'ระบบย่อย'} {modalPhotoIndex + 1}/{modalProject.gallery.length}: {
+                          language === 'en' 
+                            ? modalProject.gallery[modalPhotoIndex].subsystemEn 
+                            : modalProject.gallery[modalPhotoIndex].subsystemTh
+                        }
+                      </span>
+                    </div>
+                  )}
 
-                <h4 className="text-base sm:text-lg font-bold text-white leading-tight">
-                  {language === 'en' ? modalProject.titleEn : modalProject.title}
-                </h4>
+                  <h4 className="text-base sm:text-lg font-bold text-white leading-tight">
+                    {language === 'en' ? modalProject.titleEn : modalProject.title}
+                  </h4>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {modalProject.gallery
-                    ? (language === 'en' ? modalProject.gallery[modalPhotoIndex].descEn : modalProject.gallery[modalPhotoIndex].descTh)
-                    : modalProject.scope}
-                </p>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {modalProject.gallery
+                      ? (language === 'en' ? modalProject.gallery[modalPhotoIndex].descEn : modalProject.gallery[modalPhotoIndex].descTh)
+                      : modalProject.scope}
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center space-x-3 shrink-0">
