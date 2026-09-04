@@ -124,7 +124,7 @@ const personnelList: Personnel[] = [
     id: 'rangsarit',
     roleTh: 'วิศวกรโครงการ',
     roleEn: 'Project Engineer',
-    nameTh: 'คุณรังสฤษดิ์ ซูหลง',
+    nameTh: 'คุณรังสฤทธิ์ สุหลง',
     nameEn: 'Mr. Rangsarit Sulong',
     phone: '064-630 4866',
     email: 'rangsarit.meskp@gmail.com',
@@ -149,7 +149,7 @@ const personnelList: Personnel[] = [
     id: 'wilaiwan',
     roleTh: 'เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)',
     roleEn: 'Safety Officer (HSE Specialist)',
-    nameTh: 'คุณวิไลวรรณ โคการัตน์',
+    nameTh: 'คุณวิไลวรรณ โกฆะรัตน์',
     nameEn: 'Mrs. Wilaiwan Kokarat',
     phone: '082-208 4541',
     email: 'vilaivan2518@gmail.com',
@@ -173,7 +173,7 @@ const personnelList: Personnel[] = [
     id: 'prasert',
     roleTh: 'หัวหน้าผู้ควบคุมงานสนาม (Foreman)',
     roleEn: 'Site Construction Foreman',
-    nameTh: 'คุณประเสริฐ ละกาสอง',
+    nameTh: 'คุณประเสริฐ ลากะสงค์',
     nameEn: 'Mr. Prasert Lakasong',
     phone: '062-624 8171',
     email: 'prasertlakasong@gmail.com',
@@ -536,8 +536,45 @@ export default function SchematicExplorer() {
           </div>
         </div>
 
-        {/* ORGANIZATIONAL HIERARCHY TREE */}
-        <div className="relative space-y-10">
+        {/* UNIFIED ENCLOSING ORGANIZATION FRAME (กรอบครอบผังองค์กรทั้งหมดให้เป็นส่วนเดียวกัน) */}
+        <div className="relative rounded-3xl bg-gradient-to-b from-skp-navy-card/85 via-skp-navy-deep/95 to-skp-navy-card/85 border-2 border-skp-navy-border/90 hover:border-skp-cyan/40 p-5 sm:p-8 lg:p-10 shadow-2xl shadow-black/50 backdrop-blur-xl transition-all duration-300">
+          {/* Decorative high-tech corner brackets */}
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-skp-cyan/70 rounded-tl-3xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-skp-cyan/70 rounded-tr-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-skp-cyan/70 rounded-bl-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-skp-cyan/70 rounded-br-3xl pointer-events-none" />
+
+          {/* Blueprint subtle background inside frame */}
+          <div className="absolute inset-0 bg-blueprint-dense opacity-10 rounded-3xl pointer-events-none" />
+
+          {/* Organization Frame Inner Top Bar */}
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-skp-navy-border/80 pb-5 mb-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-skp-cyan/15 border border-skp-cyan/40 text-skp-cyan shadow-sm">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-widest text-skp-cyan font-bold block">
+                  {language === 'en' ? 'SKP Engineering Hierarchy Matrix' : 'ผังโครงสร้างการบริหารและกำกับดูแลโครงการ'}
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  {language === 'en'
+                    ? 'Designated Key Personnel & Functional Chain of Command'
+                    : 'สายการบังคับบัญชาและคณะผู้รับผิดชอบงานประจำโครงการ'}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {language === 'en' ? 'Certified Structure' : 'โครงสร้างรับรองอย่างเป็นทางการ'}
+              </span>
+            </div>
+          </div>
+
+          {/* ORGANIZATIONAL HIERARCHY TREE */}
+          <div className="relative space-y-10 z-10">
           {/* LEVEL 1: MANAGING DIRECTOR */}
           {(activeTab === 'all' || activeTab === 'head_office') && director && (
             <div className="flex flex-col items-center">
@@ -679,6 +716,7 @@ export default function SchematicExplorer() {
               </div>
             </div>
           )}
+        </div>
         </div>
 
         {/* OFFICIAL DRAWING TEASER STRIP */}
