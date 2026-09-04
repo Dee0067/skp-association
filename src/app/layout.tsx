@@ -18,6 +18,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="th" className="scroll-smooth">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                if ('scrollRestoration' in history) {
+                  history.scrollRestoration = 'manual';
+                }
+                if (window.location.hash) {
+                  history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+                window.scrollTo(0, 0);
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="bg-skp-navy-deep text-slate-100 antialiased selection:bg-skp-red selection:text-white">
         {/*
           <!--

@@ -14,16 +14,35 @@ export default function Navbar() {
   const t = translations[language].nav;
 
   useEffect(() => {
-    // Ensure page opens at the top unless an explicit section hash is requested
-    if (typeof window !== 'undefined' && !window.location.hash) {
-      window.scrollTo(0, 0);
-    }
+    if (typeof window !== 'undefined') {
+      // Disable browser automatic scroll restoration on refresh
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
 
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+      // If page was loaded/refreshed with a hash, remove it so it starts at the top
+      if (window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
+      // Always force viewport to the top on page open/refresh
+      window.scrollTo(0, 0);
+
+      const handleBeforeUnload = () => {
+        window.scrollTo(0, 0);
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      const handleScroll = () => {
+        setIsScrolled(window.scrollY > 20);
+      };
+      window.addEventListener('scroll', handleScroll);
+
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }
   }, []);
 
   return (
