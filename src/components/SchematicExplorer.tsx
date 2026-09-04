@@ -478,7 +478,7 @@ export default function SchematicExplorer() {
           <div className="absolute inset-0 bg-blueprint-dense opacity-10 rounded-3xl pointer-events-none" />
 
           {/* Organization Frame Inner Top Bar */}
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-skp-navy-border/80 pb-5 mb-10">
+          <div className="relative z-10 flex items-center gap-3 border-b border-skp-navy-border/80 pb-5 mb-10">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-skp-cyan/15 border border-skp-cyan/40 text-skp-cyan shadow-sm">
                 <Users className="w-5 h-5" />
@@ -495,37 +495,7 @@ export default function SchematicExplorer() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {language === 'en' ? 'Certified Structure' : 'โครงสร้างรับรองอย่างเป็นทางการ'}
-              </span>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setModalViewMode('drawing');
-                  setIsFullscreenOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-skp-cyan/15 hover:bg-skp-cyan/25 border border-skp-cyan/40 hover:border-skp-cyan text-skp-cyan text-xs font-semibold shadow-sm transition-all"
-                title={language === 'en' ? 'Fullscreen View' : 'เปิดดูผังเต็มจอ'}
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Fullscreen' : 'เต็มจอ'}</span>
-              </button>
-
-              <a
-                href="/organization/skp-organization-chart.pdf"
-                download="SKP-Organization-and-Key-Personnel.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-skp-navy-deep/80 hover:bg-skp-navy-light border border-skp-navy-border hover:border-slate-400/40 text-slate-200 hover:text-white text-xs font-medium transition-all"
-                title={language === 'en' ? 'Download PDF' : 'ดาวน์โหลด PDF'}
-              >
-                <Download className="w-3.5 h-3.5 text-slate-300" />
-                <span>PDF</span>
-              </a>
-            </div>
           </div>
 
           {/* ORGANIZATIONAL HIERARCHY TREE */}
