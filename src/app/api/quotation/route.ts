@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     const email = (formData.get('email') as string) || '';
     const serviceType = (formData.get('serviceType') as string) || 'electrical';
     const message = (formData.get('message') as string) || 'ไม่ได้ระบุรายละเอียดเพิ่มเติม';
+    const docRefNumber = (formData.get('docRefNumber') as string) || `RFQ-${Date.now().toString().slice(-6)}`;
 
     if (!email || !email.includes('@')) {
       return NextResponse.json(
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     const fileListHtml = files.length > 0
       ? `
         <div style="margin-top: 16px; padding: 14px; background-color: #f1f5f9; border-radius: 8px; border-left: 4px solid #0284c7;">
-          <h4 style="margin: 0 0 8px 0; color: #0f172a; font-size: 14px;">📎 รายการไฟล์แนบ (${files.length} ไฟล์):</h4>
+          <h4 style="margin: 0 0 8px 0; color: #0f172a; font-size: 14px;">📎 รายการไฟล์แนบในอีเมลนี้ (${files.length} ไฟล์):</h4>
           <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 13px;">
             ${files.map(f => `<li><strong>${f.name}</strong> (${formatBytes(f.size)})</li>`).join('')}
           </ul>
@@ -76,14 +77,15 @@ export async function POST(request: NextRequest) {
         <meta charset="utf-8">
         <style>
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 24px; }
-          .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+          .container { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
           .header { background: linear-gradient(135deg, #091322 0%, #10223e 100%); color: #ffffff; padding: 24px 28px; border-bottom: 3px solid #e11d48; }
-          .badge { display: inline-block; background: rgba(0,240,255,0.15); color: #00f0ff; font-size: 11px; padding: 4px 10px; border-radius: 9999px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; border: 1px solid rgba(0,240,255,0.3); }
+          .badge { display: inline-block; background: rgba(0,240,255,0.15); color: #00f0ff; font-size: 11px; padding: 4px 10px; border-radius: 9999px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; border: 1px solid rgba(0,240,255,0.3); font-family: monospace; }
+          .ref-badge { float: right; background: #0284c7; color: #ffffff; font-family: monospace; font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
           .content { padding: 28px; }
           .field-group { margin-bottom: 16px; }
           .field-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
           .field-value { font-size: 15px; color: #0f172a; font-weight: 500; }
-          .message-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #334155; }
+          .message-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #334155; }
           .footer { background: #f8fafc; padding: 16px 28px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; text-align: center; }
           .highlight { color: #e11d48; font-weight: 600; }
         </style>
@@ -91,8 +93,9 @@ export async function POST(request: NextRequest) {
       <body>
         <div class="container">
           <div class="header">
-            <span class="badge">SKP ASSOCIATION WEBSITE INQUIRY</span>
-            <h2 style="margin: 0; font-size: 20px; font-weight: 700;">แบบฟอร์มขอใบเสนอราคา / ปรึกษางานใหม่</h2>
+            <span class="ref-badge">${docRefNumber}</span>
+            <span class="badge">SKP ASSOCIATION // ENGINEERING INQUIRY</span>
+            <h2 style="margin: 6px 0 0 0; font-size: 20px; font-weight: 700;">แบบฟอร์มขอใบเสนอราคา / ปรึกษางานวิศวกรรม</h2>
             <p style="margin: 6px 0 0 0; font-size: 13px; color: #94a3b8;">ส่งเมื่อ: ${nowBangkok}</p>
           </div>
           
@@ -136,33 +139,45 @@ export async function POST(request: NextRequest) {
 
           <div class="footer">
             ส่งผ่านระบบอัตโนมัติจากเว็บไซต์ <strong>บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด (skpassociation.co.th)</strong><br>
-            อีเมลปลายทาง: <strong>${TARGET_EMAIL}</strong>
+            อีเมลปลายทางหลัก: <strong>${TARGET_EMAIL}</strong> | สำเนาผู้ส่ง: <strong>${email}</strong>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    const subject = `[ขอใบเสนอราคา] ${name} - ${company} (${serviceLabel})`;
+    const subject = `[${docRefNumber}] ขอใบเสนอราคา: ${name} - ${company} (${serviceLabel})`;
 
-    // Check if direct SMTP credentials are provided
+    // Check if direct SMTP credentials are provided (e.g. Gmail App Password or custom SMTP)
     const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
     const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
     const smtpPort = Number(process.env.SMTP_PORT) || 465;
 
     if (smtpUser && smtpPass) {
-      // Send via Nodemailer SMTP
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+      const isGmail = smtpHost.toLowerCase().includes('gmail') || smtpUser.toLowerCase().includes('@gmail.com');
+      
+      const transporter = nodemailer.createTransport(
+        isGmail
+          ? {
+              service: 'gmail',
+              auth: {
+                user: smtpUser,
+                pass: smtpPass,
+              },
+            }
+          : {
+              host: smtpHost,
+              port: smtpPort,
+              secure: smtpPort === 465,
+              auth: {
+                user: smtpUser,
+                pass: smtpPass,
+              },
+            }
+      );
 
+      // Convert all files to Node Buffers for attachment
       const attachments = await Promise.all(
         files.map(async (file) => {
           const arrayBuffer = await file.arrayBuffer();
@@ -186,9 +201,10 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'ส่งข้อมูลและไฟล์แนบไปยังอีเมลเรียบร้อยแล้ว (ผ่าน SMTP)',
+        message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว (ผ่าน SMTP)',
         recipient: TARGET_EMAIL,
         filesCount: files.length,
+        docRefNumber,
       });
     }
 
@@ -196,6 +212,7 @@ export async function POST(request: NextRequest) {
     try {
       const relayFormData = new FormData();
       relayFormData.append('_subject', subject);
+      relayFormData.append('เลขที่คำขอ', docRefNumber);
       relayFormData.append('ชื่อผู้ติดต่อ', name);
       relayFormData.append('บริษัท_องค์กร', company);
       relayFormData.append('เบอร์โทรศัพท์', phone);
@@ -237,9 +254,10 @@ export async function POST(request: NextRequest) {
       if (relayData && (relayData.success === 'true' || relayData.success === true)) {
         return NextResponse.json({
           success: true,
-          message: 'ส่งข้อมูลและไฟล์แนบไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
+          message: 'ส่งข้อมูลไปยัง supot.meskp@gmail.com เรียบร้อยแล้ว',
           recipient: TARGET_EMAIL,
           filesCount: files.length,
+          docRefNumber,
         });
       }
 

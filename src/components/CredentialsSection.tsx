@@ -9,13 +9,18 @@ import {
   CheckCircle2, 
   MapPin, 
   Phone, 
-  Printer,
-  Calendar,
-  Lock,
-  Download
+  Printer, 
+  Calendar, 
+  Lock, 
+  Download 
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/translations';
 
 export default function CredentialsSection() {
+  const { language } = useLanguage();
+  const t = translations[language].credentials;
+
   return (
     <section id="credentials" className="py-20 lg:py-28 bg-skp-navy-dark relative overflow-hidden border-t border-skp-navy-border">
       {/* Background radial glow */}
@@ -27,13 +32,13 @@ export default function CredentialsSection() {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-skp-navy-card border border-skp-navy-border text-xs font-mono text-skp-cyan">
             <ShieldCheck className="w-3.5 h-3.5 text-skp-cyan" />
-            <span>VERIFIED CORPORATE CREDENTIALS</span>
+            <span>{t.badge}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            ข้อมูลนิติบุคคลและมาตรฐานวิศวกรรม
+            {t.title}
           </h2>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            ความโปร่งใส ความถูกต้องตามกฎหมาย และมาตรฐานวิศวกรรมควบคุม เพื่อความเชื่อมั่นสูงสุดของคู่ค้าและเจ้าของโครงการ
+            {t.subtitle}
           </p>
         </div>
 
@@ -49,70 +54,70 @@ export default function CredentialsSection() {
                     <FileCheck className="w-6 h-6 text-skp-cyan" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">ข้อมูลการจดทะเบียนนิติบุคคล</h3>
-                    <p className="text-xs font-mono text-slate-400">Department of Business Development (DBD)</p>
+                    <h3 className="text-lg font-bold text-white">{t.regTitle}</h3>
+                    <p className="text-xs font-mono text-slate-400">{t.regSub}</p>
                   </div>
                 </div>
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-800 text-[11px] font-mono text-emerald-400 font-semibold">
                   <Lock className="w-3 h-3 mr-1" />
-                  VERIFIED ACTIVE
+                  {t.verifiedActive}
                 </span>
               </div>
 
               {/* Data Table */}
               <div className="mt-6 space-y-4 text-xs sm:text-sm font-mono">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400">ชื่อนิติบุคคล (ภาษาไทย):</span>
-                  <span className="font-bold text-white mt-0.5 sm:mt-0 font-sans">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</span>
+                  <span className="text-slate-400">{t.nameThLabel}</span>
+                  <span className="font-bold text-white mt-0.5 sm:mt-0 font-sans">{t.nameThValue}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400">Corporate Name (EN):</span>
-                  <span className="font-bold text-white mt-0.5 sm:mt-0">SKP ASSOCIATION CO., LTD.</span>
+                  <span className="text-slate-400">{t.nameEnLabel}</span>
+                  <span className="font-bold text-white mt-0.5 sm:mt-0">{t.nameEnValue}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400">เลขทะเบียนนิติบุคคล (Tax ID):</span>
+                  <span className="text-slate-400">{t.taxIdLabel}</span>
                   <span className="font-bold text-skp-cyan mt-0.5 sm:mt-0 text-base">0105554136205</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400">วันที่จดทะเบียนจัดตั้ง:</span>
-                  <span className="font-bold text-white mt-0.5 sm:mt-0">11 ตุลาคม พ.ศ. 2554</span>
+                  <span className="text-slate-400">{t.regDateLabel}</span>
+                  <span className="font-bold text-white mt-0.5 sm:mt-0">{t.regDateValue}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400">ประเภทธุรกิจตามจดทะเบียน:</span>
+                  <span className="text-slate-400">{t.businessTypeLabel}</span>
                   <span className="font-bold text-slate-200 mt-0.5 sm:mt-0 text-right font-sans">
-                    ให้บริการด้านวิศวกรรม ระบบไฟฟ้า และรับเหมาติดตั้งงานระบบอาคาร
+                    {t.businessTypeValue}
                   </span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between py-2 border-b border-skp-navy-border/60">
-                  <span className="text-slate-400 shrink-0">ที่อยู่สำนักงานใหญ่:</span>
+                  <span className="text-slate-400 shrink-0">{t.hqAddressLabel}</span>
                   <a
                     href="https://www.google.com/maps?q=13.830666,100.635479"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-slate-200 mt-0.5 sm:mt-0 text-left sm:text-right font-sans max-w-xs hover:text-skp-cyan transition-colors"
-                    title="คลิกเพื่อดูหมุดบน Google Maps (13.830666, 100.635479)"
+                    title={t.hqMapTooltip}
                   >
-                    41/333 หมู่ที่ 12 ถนนนวลจันทร์ แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพมหานคร 10230
+                    {t.hqAddressValue}
                   </a>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2">
-                  <span className="text-slate-400">โทรศัพท์ / โทรสาร:</span>
+                  <span className="text-slate-400">{t.phoneFaxLabel}</span>
                   <span className="font-semibold text-slate-200 mt-0.5 sm:mt-0">
-                    โทร: 02-116-4125 | โทรสาร: 02-116-4126
+                    {t.phoneFaxValue}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 pt-4 border-t border-skp-navy-border/80 flex items-center justify-between text-xs text-slate-400 font-mono">
-              <span>ฐานข้อมูลกรมพัฒนาธุรกิจการค้า กระทรวงพาณิชย์</span>
-              <span className="text-skp-cyan">สถานะ: ดำเนินกิจการอยู่</span>
+              <span>{t.dbdSource}</span>
+              <span className="text-skp-cyan">{t.dbdStatus}</span>
             </div>
           </div>
 
@@ -124,8 +129,8 @@ export default function CredentialsSection() {
                   <Award className="w-6 h-6 text-skp-red" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">มาตรฐานวิศวกรรมควบคุมและความปลอดภัย</h3>
-                  <p className="text-xs font-mono text-slate-400">Engineering Compliance & Safety Codes</p>
+                  <h3 className="text-lg font-bold text-white">{t.standardsTitle}</h3>
+                  <p className="text-xs font-mono text-slate-400">{t.standardsSub}</p>
                 </div>
               </div>
 
@@ -133,9 +138,9 @@ export default function CredentialsSection() {
                 <div className="p-4 rounded-xl bg-skp-navy-deep border border-skp-navy-border flex items-start space-x-3.5">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-white">การควบคุมงานโดยวิศวกรผู้ได้รับใบอนุญาต (กว.)</h4>
+                    <h4 className="text-sm font-bold text-white">{t.std1Title}</h4>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      ทุกโครงการมีการกำกับดูแลและลงนามรับรองโดยวิศวกรไฟฟ้ากำลัง และวิศวกรเครื่องกลที่ได้รับใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุมจากสภาวิศวกร
+                      {t.std1Desc}
                     </p>
                   </div>
                 </div>
@@ -143,9 +148,9 @@ export default function CredentialsSection() {
                 <div className="p-4 rounded-xl bg-skp-navy-deep border border-skp-navy-border flex items-start space-x-3.5">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-white">มาตรฐาน วสท. และข้อกำหนดของการไฟฟ้าฯ (MEA/PEA)</h4>
+                    <h4 className="text-sm font-bold text-white">{t.std2Title}</h4>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      การติดตั้งระบบไฟฟ้า หม้อแปลง ตู้สวิตช์บอร์ด และสายป้อน เป็นไปตามมาตรฐานการติดตั้งทางไฟฟ้าสำหรับประเทศไทย และสอดคล้องกับระเบียบการไฟฟ้านครหลวงและการไฟฟ้าส่วนภูมิภาค 100%
+                      {t.std2Desc}
                     </p>
                   </div>
                 </div>
@@ -153,9 +158,9 @@ export default function CredentialsSection() {
                 <div className="p-4 rounded-xl bg-skp-navy-deep border border-skp-navy-border flex items-start space-x-3.5">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-white">มาตรฐานระบบสากล NFPA, ASHRAE และ IEC</h4>
+                    <h4 className="text-sm font-bold text-white">{t.std3Title}</h4>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      งานระบบดับเพลิงและระบบปรับอากาศปฏิบัติตามมาตรฐาน NFPA 13, 20 และ ASHRAE เพื่อประสิทธิภาพและความปลอดภัยต่อชีวิตและทรัพย์สินสูงสุด
+                      {t.std3Desc}
                     </p>
                   </div>
                 </div>
@@ -165,15 +170,15 @@ export default function CredentialsSection() {
             {/* Quick Contact & Action Callout */}
             <div className="p-6 rounded-2xl bg-gradient-to-r from-skp-navy-light/60 to-skp-navy-card border border-skp-cyan/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <div className="text-xs font-mono text-skp-cyan">DIRECT PROCUREMENT & TENDER CHANNEL</div>
-                <div className="text-base font-bold text-white mt-0.5">ต้องการเอกสารบริษัทหรือส่งหนังสือเชิญประมูลงาน?</div>
-                <div className="text-xs text-slate-300 mt-1">สามารถส่งเอกสาร TOR / BOQ เพื่อประเมินราคาได้ทันที</div>
+                <div className="text-xs font-mono text-skp-cyan">{t.procureChannel}</div>
+                <div className="text-base font-bold text-white mt-0.5">{t.procureTitle}</div>
+                <div className="text-xs text-slate-300 mt-1">{t.procureSub}</div>
               </div>
               <a
                 href="#contact"
                 className="px-5 py-2.5 bg-skp-red hover:bg-skp-red-hover text-white rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap shadow-lg shadow-skp-red/30 transition-colors"
               >
-                ติดต่อฝ่ายประมูลงาน
+                {t.procureBtn}
               </a>
             </div>
 

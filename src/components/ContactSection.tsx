@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { 
   Phone, 
+  Smartphone,
   Printer, 
   MapPin, 
   Mail, 
@@ -24,10 +25,17 @@ import {
   FileSpreadsheet,
   Image as ImageIcon,
   Layers,
-  Paperclip
+  Paperclip,
+  Eye
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/translations';
+import QuotationDocumentPreviewModal, { QuotationPreviewData } from './QuotationDocumentPreviewModal';
 
 export default function ContactSection() {
+  const { language } = useLanguage();
+  const t = translations[language].contact;
+
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -48,7 +56,13 @@ export default function ContactSection() {
     email: string;
     serviceType: string;
     filesCount: number;
+    docRefNumber: string;
+    createdDate: string;
   } | null>(null);
+
+  // Document Preview Modal State
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<QuotationPreviewData | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -163,21 +177,76 @@ export default function ContactSection() {
     setTimeout(() => setCopiedCoords(false), 2200);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Open PDF preview document before final submission
+  const handleOpenPreview = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
+
+    if (!formData.name.trim() || !formData.company.trim() || !formData.phone.trim() || !formData.email.trim()) {
+      setSubmitError(language === 'en' ? 'Please fill in all required fields marked with *' : 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
+      return;
+    }
+
+    if (!formData.email.includes('@')) {
+      setSubmitError(language === 'en' ? 'Please enter a valid email address' : 'กรุณากรอกอีเมล (Email Address) ให้ถูกต้องครบถ้วน');
+      return;
+    }
+
+    const now = new Date();
+    const thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const day = now.getDate();
+    const monthIdx = now.getMonth();
+    const thaiYear = now.getFullYear() + 543;
+    const ceYear = now.getFullYear();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const mins = now.getMinutes().toString().padStart(2, '0');
+
+    const fullDateStr = language === 'en'
+      ? `${now.toLocaleString('en-US', { month: 'long' })} ${day}, ${ceYear}`
+      : `${day} ${thaiMonths[monthIdx]} ${thaiYear}`;
+
+    const createdDate = language === 'en'
+      ? `${now.toLocaleString('en-US', { month: 'short' })} ${day}, ${ceYear} ${hours}:${mins}`
+      : `${day} ${thaiMonths[monthIdx]} ${thaiYear} ${hours}:${mins} น.`;
+
+    const refCode = `RFQ-${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    setPreviewData({
+      name: formData.name.trim(),
+      company: formData.company.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      serviceType: formData.serviceType,
+      message: formData.message.trim(),
+      files,
+      docRefNumber: refCode,
+      createdDate,
+      fullDateStr,
+    });
+
+    setIsPreviewOpen(true);
+  };
+
+  // Step 2: Confirmed submission from the PDF preview modal
+  const handleConfirmSubmit = async () => {
+    if (!previewData) return;
     setLoading(true);
     setSubmitError(null);
 
     try {
       const data = new FormData();
-      data.append('name', formData.name);
-      data.append('company', formData.company);
-      data.append('phone', formData.phone);
-      data.append('email', formData.email);
-      data.append('serviceType', formData.serviceType);
-      data.append('message', formData.message);
+      data.append('name', previewData.name);
+      data.append('company', previewData.company);
+      data.append('phone', previewData.phone);
+      data.append('email', previewData.email);
+      data.append('serviceType', previewData.serviceType);
+      data.append('message', previewData.message);
+      data.append('docRefNumber', previewData.docRefNumber);
 
-      for (const file of files) {
+      for (const file of previewData.files) {
         data.append('files', file);
       }
 
@@ -191,21 +260,23 @@ export default function ContactSection() {
 
       // 2. If serverless API did not succeed, fallback to direct browser submission to FormSubmit
       if (!res.ok || !result || !result.success) {
-        console.log('Serverless relay not configured, attempting direct client submission...');
+        console.log('Serverless relay fallback, attempting direct client submission...');
         const clientFormData = new FormData();
-        clientFormData.append('_subject', `[ขอใบเสนอราคา] ${formData.name} - ${formData.company}`);
-        clientFormData.append('ชื่อผู้ติดต่อ', formData.name);
-        clientFormData.append('บริษัท_องค์กร', formData.company);
-        clientFormData.append('เบอร์โทรศัพท์', formData.phone);
-        clientFormData.append('อีเมล', formData.email);
-        clientFormData.append('_replyto', formData.email);
-        clientFormData.append('_cc', formData.email);
-        clientFormData.append('ขอบข่ายงานวิศวกรรม', formData.serviceType);
-        clientFormData.append('รายละเอียดโครงการ', formData.message);
+        clientFormData.append('_subject', `[${previewData.docRefNumber}] ขอใบเสนอราคา: ${previewData.name} - ${previewData.company}`);
+        clientFormData.append('เลขที่คำขอ', previewData.docRefNumber);
+        clientFormData.append('ชื่อผู้ติดต่อ', previewData.name);
+        clientFormData.append('บริษัท_องค์กร', previewData.company);
+        clientFormData.append('เบอร์โทรศัพท์', previewData.phone);
+        clientFormData.append('อีเมล', previewData.email);
+        clientFormData.append('_replyto', previewData.email);
+        clientFormData.append('_cc', previewData.email);
+        clientFormData.append('ขอบข่ายงานวิศวกรรม', previewData.serviceType);
+        clientFormData.append('รายละเอียดโครงการ', previewData.message);
+        clientFormData.append('วันเวลาออกเอกสาร', previewData.createdDate);
         clientFormData.append('_template', 'table');
         clientFormData.append('_captcha', 'false');
 
-        for (const file of files) {
+        for (const file of previewData.files) {
           clientFormData.append('attachment', file, file.name);
         }
 
@@ -225,7 +296,7 @@ export default function ContactSection() {
               res = { ok: true } as any;
             } else if (typeof directData.message === 'string' && directData.message.toLowerCase().includes('activation')) {
               throw new Error(
-                'ระบบ FormSubmit ต้องการการยืนยันครั้งแรก (One-time Activation): ได้มีอีเมลหัวข้อ "Activate Form" ส่งไปยัง supot.meskp@gmail.com แล้ว กรุณาเปิดกล่องจดหมาย Inbox (หรือโฟลเดอร์ Junk/Spam) และคลิกปุ่ม Activate Form 1 ครั้ง เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร'
+                'ระบบต้องการการยืนยันครั้งแรก (One-time Activation): ได้มีอีเมลหัวข้อ "Activate Form" ส่งไปยัง supot.meskp@gmail.com แล้ว กรุณาเปิดกล่องจดหมาย Inbox หรือ Junk/Spam และคลิกปุ่ม Activate Form 1 ครั้ง เพื่อเปิดรับข้อความเข้าอีเมลนี้อย่างถาวร'
               );
             } else {
               throw new Error(directData.message || 'ระบบไม่สามารถส่งข้อความได้');
@@ -241,14 +312,17 @@ export default function ContactSection() {
       }
 
       setSubmittedData({
-        name: formData.name,
-        company: formData.company,
-        phone: formData.phone,
-        email: formData.email,
-        serviceType: formData.serviceType,
-        filesCount: files.length,
+        name: previewData.name,
+        company: previewData.company,
+        phone: previewData.phone,
+        email: previewData.email,
+        serviceType: previewData.serviceType,
+        filesCount: previewData.files.length,
+        docRefNumber: previewData.docRefNumber,
+        createdDate: previewData.createdDate,
       });
 
+      setIsPreviewOpen(false);
       setSubmitted(true);
       setFiles([]);
       setFormData({
@@ -280,13 +354,13 @@ export default function ContactSection() {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-skp-navy-card border border-skp-navy-border text-xs font-mono text-skp-cyan">
             <Mail className="w-3.5 h-3.5 text-skp-cyan" />
-            <span>PROJECT CONSULTATION & RFP</span>
+            <span>{t.badge}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            ติดต่อสอบถามและขอใบเสนอราคา
+            {t.title}
           </h2>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            ทีมวิศวกรผู้เชี่ยวชาญ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด พร้อมให้คำปรึกษา ออกแบบ และประเมินราคาสำหรับโครงการของท่าน
+            {t.subtitle}
           </p>
         </div>
 
@@ -296,9 +370,9 @@ export default function ContactSection() {
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-skp-navy-card rounded-2xl border border-skp-navy-border p-6 sm:p-8 shadow-xl space-y-6">
               <div>
-                <h3 className="text-xl font-bold text-white">สำนักงานใหญ่</h3>
-                <p className="text-xs font-mono text-slate-400 mt-0.5">Headquarters & Engineering Office</p>
-                <p className="text-xs text-skp-cyan font-mono mt-1">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</p>
+                <h3 className="text-xl font-bold text-white">{t.officeCardTitle}</h3>
+                <p className="text-xs font-mono text-slate-400 mt-0.5">{t.officeCardSub}</p>
+                <p className="text-xs text-skp-cyan font-mono mt-1">{t.companyName}</p>
               </div>
 
               <div className="space-y-4 text-sm">
@@ -307,20 +381,35 @@ export default function ContactSection() {
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-mono text-slate-400 block">สถานที่ตั้ง:</span>
+                    <span className="text-xs font-mono text-slate-400 block">{t.addressTitle}</span>
                     <a
                       href={googleMapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-slate-200 leading-relaxed block font-medium hover:text-skp-cyan transition-colors group"
-                      title="กดเพื่อเปิดดูหมุดใน Google Maps"
+                      title="Google Maps"
                     >
-                      <span>41/333 หมู่ที่ 12 ถนนนวลจันทร์ แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพมหานคร 10230</span>
+                      <span>{t.addressLine}</span>
                       <span className="inline-flex items-center text-xs text-skp-cyan font-mono ml-2 group-hover:underline">
                         <ExternalLink className="w-3 h-3 mr-1" />
-                        เปิดดูหมุด (พิกัด {officeCoordsDisplay})
+                        {t.openPin}
                       </span>
                     </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3.5">
+                  <div className="p-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-skp-cyan shrink-0 mt-0.5">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono text-slate-400 block">{t.mobilePhoneTitle}</span>
+                    <a href="tel:0936956445" className="text-lg font-bold text-skp-cyan hover:underline transition-colors font-mono block">
+                      093-695-6445
+                    </a>
+                    <span className="text-xs text-slate-300 font-medium">
+                      {t.managerLabel}
+                    </span>
                   </div>
                 </div>
 
@@ -329,7 +418,7 @@ export default function ContactSection() {
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-mono text-slate-400 block">เบอร์โทรศัพท์ (สายตรง):</span>
+                    <span className="text-xs font-mono text-slate-400 block">{t.officePhoneTitle}</span>
                     <a href="tel:021164125" className="text-lg font-bold text-white hover:text-skp-cyan transition-colors font-mono">
                       02-116-4125
                     </a>
@@ -341,7 +430,7 @@ export default function ContactSection() {
                     <Printer className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-mono text-slate-400 block">เบอร์โทรสาร (Fax):</span>
+                    <span className="text-xs font-mono text-slate-400 block">{t.faxTitle}</span>
                     <span className="text-slate-200 font-mono font-medium">
                       02-116-4126
                     </span>
@@ -353,11 +442,11 @@ export default function ContactSection() {
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-mono text-slate-400 block">เวลาทำการ (Business Hours):</span>
+                    <span className="text-xs font-mono text-slate-400 block">{t.hoursTitle}</span>
                     <span className="text-slate-200">
-                      วันจันทร์ – วันเสาร์: 08:30 – 17:30 น.
+                      {t.hoursValue}
                     </span>
-                    <span className="block text-xs text-slate-400 mt-0.5">(หยุดวันอาทิตย์และวันหยุดนักขัตฤกษ์)</span>
+                    <span className="block text-xs text-slate-400 mt-0.5">{t.hoursSub}</span>
                   </div>
                 </div>
               </div>
@@ -367,7 +456,7 @@ export default function ContactSection() {
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400">
                   <span className="flex items-center text-slate-300 font-medium">
                     <MapPin className="w-3.5 h-3.5 mr-1.5 text-skp-cyan" />
-                    ตำแหน่งที่ตั้งบริษัท (ปักหมุด)
+                    {t.mapPinTitle}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-skp-navy-card border border-skp-cyan/40 text-[11px] text-skp-cyan font-mono font-semibold">
                     📍 {officeCoordsDisplay}
@@ -381,7 +470,7 @@ export default function ContactSection() {
                     className="w-full h-full border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="แผนที่ปักหมุดที่ตั้งสำนักงานใหญ่ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด"
+                    title="Google Maps SKP Association"
                   />
 
                   {/* Top-Right Expand Button Overlay */}
@@ -390,10 +479,10 @@ export default function ContactSection() {
                       type="button"
                       onClick={() => setIsMapModalOpen(true)}
                       className="px-2.5 py-1.5 rounded-md bg-skp-navy-dark/90 hover:bg-skp-navy-card text-white border border-skp-navy-border text-xs flex items-center shadow-lg transition-all backdrop-blur-md hover:border-skp-cyan/50"
-                      title="กดเพื่อขยายดูแผนที่เต็มจอ"
+                      title={t.fullscreenMap}
                     >
                       <Maximize2 className="w-3.5 h-3.5 mr-1.5 text-skp-cyan" />
-                      <span className="font-medium">ขยายเต็มจอ</span>
+                      <span className="font-medium">{t.fullscreenMap}</span>
                     </button>
                   </div>
                 </div>
@@ -407,7 +496,7 @@ export default function ContactSection() {
                     className="px-3 py-2 bg-skp-red hover:bg-skp-red-hover text-white rounded-lg text-xs font-semibold flex items-center justify-center shadow-md transition-all group"
                   >
                     <Navigation className="w-3.5 h-3.5 mr-1.5 text-white group-hover:rotate-12 transition-transform" />
-                    <span>เปิดนำทาง Google Maps</span>
+                    <span>{t.openGmapsBtn}</span>
                     <ExternalLink className="w-3 h-3 ml-1.5 opacity-80" />
                   </a>
 
@@ -419,12 +508,12 @@ export default function ContactSection() {
                     {copiedAddress ? (
                       <>
                         <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-semibold">คัดลอกที่อยู่แล้ว</span>
+                        <span className="text-emerald-400 font-semibold">{t.copiedAddressBtn}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-                        <span>คัดลอกที่อยู่สำนักงาน</span>
+                        <span>{t.copyAddressBtn}</span>
                       </>
                     )}
                   </button>
@@ -432,7 +521,7 @@ export default function ContactSection() {
 
                 {/* Coordinates & Location info */}
                 <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 font-mono border-t border-skp-navy-border/60">
-                  <span className="text-slate-300">พิกัด GPS: {officeCoordsDisplay}</span>
+                  <span className="text-slate-300">GPS: {officeCoordsDisplay}</span>
                   <button
                     type="button"
                     onClick={handleCopyCoords}
@@ -441,19 +530,19 @@ export default function ContactSection() {
                     {copiedCoords ? (
                       <>
                         <Check className="w-3 h-3 mr-1 text-emerald-400" />
-                        <span className="text-emerald-400 font-medium">คัดลอกพิกัดแล้ว</span>
+                        <span className="text-emerald-400 font-medium">{t.copiedCoordsBtn}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3 h-3 mr-1" />
-                        <span>คัดลอกพิกัด GPS</span>
+                        <span>{t.copyCoordsBtn}</span>
                       </>
                     )}
                   </button>
                 </div>
 
                 <div className="text-[11px] text-slate-400 leading-tight">
-                  • สำนักงานตั้งอยู่บน ถ.นวลจันทร์ เดินทางเชื่อมต่อสะดวกทั้งจาก ถ.รามอินทรา (กม.6) และ ถ.ประเสริฐมนูกิจ (เกษตร-นวมินทร์)
+                  {t.locationDirectionsNote}
                 </div>
               </div>
 
@@ -465,9 +554,9 @@ export default function ContactSection() {
             <div className="bg-skp-navy-card rounded-2xl border border-skp-navy-border p-6 sm:p-8 shadow-2xl relative tech-border">
               
               <div className="pb-6 border-b border-skp-navy-border mb-6">
-                <h3 className="text-xl font-bold text-white">แบบฟอร์มขอใบเสนอราคา / ปรึกษางาน</h3>
+                <h3 className="text-xl font-bold text-white">{t.formTitle}</h3>
                 <p className="text-xs text-slate-300 mt-1">
-                  กรุณากรอกข้อมูลโครงการเบื้องต้น ทีมวิศวกรจะติดต่อกลับเพื่อให้คำปรึกษาภายใน 24 ชั่วโมง
+                  {t.formSubtitle}
                 </p>
               </div>
 
@@ -477,39 +566,48 @@ export default function ContactSection() {
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
                   <div>
-                    <h4 className="text-2xl font-bold text-white">ได้รับข้อมูลเรียบร้อยแล้ว</h4>
+                    <h4 className="text-2xl font-bold text-white">{t.successTitle}</h4>
                     <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                      {submittedData?.docRefNumber && (
+                        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-skp-navy-deep border border-skp-cyan/40 text-skp-cyan text-xs font-mono font-bold">
+                          #{submittedData.docRefNumber}
+                        </span>
+                      )}
                       <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-                        ✓ ส่งข้อมูลไปยัง supot.meskp@gmail.com แล้ว
+                        {t.successSentBadge}
                       </span>
                       {submittedData?.email && (
                         <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-mono">
-                          ✓ ส่งสำเนาหลักฐานไปยัง {submittedData.email} แล้ว
+                          {t.successCopyBadge} {submittedData.email}
                         </span>
                       )}
                     </div>
                   </div>
                   <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-                    ขอบพระคุณที่ให้ความไว้วางใจ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ทีมงานวิศวกรจะตรวจสอบรายละเอียดโครงการ{submittedData?.filesCount ? ` พร้อมไฟล์แนบ ${submittedData.filesCount} ไฟล์` : ''} และติดต่อกลับหาท่านโดยเร็วที่สุด
+                    {t.successDesc}
                   </p>
 
                   {submittedData && (
                     <div className="max-w-md mx-auto p-4 rounded-xl bg-skp-navy-deep border border-skp-navy-border text-left text-xs space-y-2 font-mono">
                       <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
-                        <span className="text-slate-400 font-sans">ผู้ติดต่อ:</span>
+                        <span className="text-slate-400 font-sans">{language === 'en' ? 'Document Ref No:' : 'เลขที่อ้างอิงเอกสาร:'}</span>
+                        <span className="text-skp-cyan font-bold">{submittedData.docRefNumber}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
+                        <span className="text-slate-400 font-sans">{language === 'en' ? 'Contact Person:' : 'ผู้ติดต่อ:'}</span>
                         <span className="text-white font-medium">{submittedData.name} ({submittedData.company})</span>
                       </div>
                       <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
-                        <span className="text-slate-400 font-sans">เบอร์โทรศัพท์:</span>
+                        <span className="text-slate-400 font-sans">{language === 'en' ? 'Telephone:' : 'เบอร์โทรศัพท์:'}</span>
                         <span className="text-skp-cyan font-bold">{submittedData.phone}</span>
                       </div>
                       <div className="flex justify-between border-b border-skp-navy-border/60 pb-1.5 text-slate-300">
-                        <span className="text-slate-400 font-sans">อีเมลผู้ส่ง (รับสำเนา):</span>
+                        <span className="text-slate-400 font-sans">{language === 'en' ? 'Email Copy To:' : 'อีเมลผู้ส่ง (รับสำเนา):'}</span>
                         <span className="text-emerald-300 font-semibold">{submittedData.email}</span>
                       </div>
                       <div className="flex justify-between text-slate-300 pt-0.5">
-                        <span className="text-slate-400 font-sans">ไฟล์ที่แนบ:</span>
-                        <span className="text-emerald-400 font-semibold">{submittedData.filesCount} ไฟล์</span>
+                        <span className="text-slate-400 font-sans">{t.filesAttached}:</span>
+                        <span className="text-emerald-400 font-semibold">{submittedData.filesCount} {language === 'en' ? 'files' : 'ไฟล์'}</span>
                       </div>
                     </div>
                   )}
@@ -519,24 +617,35 @@ export default function ContactSection() {
                     <div className="max-w-md mx-auto p-4 rounded-xl bg-skp-navy-card/90 border border-skp-cyan/30 text-left space-y-2">
                       <div className="flex items-center space-x-2 text-xs font-bold text-white">
                         <Mail className="w-4 h-4 text-skp-cyan" />
-                        <span>ต้องการบันทึกลงในกล่อง "ส่งแล้ว" (in:sent) ใน Gmail ของท่าน?</span>
+                        <span>{language === 'en' ? 'Record in your Gmail Sent box (in:sent)?' : 'ต้องการบันทึกลงในกล่อง "ส่งแล้ว" (in:sent) ใน Gmail ของท่าน?'}</span>
                       </div>
                       <p className="text-[11px] text-slate-300 leading-relaxed">
-                        ระบบจัดเตรียมแบบร่างที่กรอกข้อมูลโครงการและส่งถึง <strong>supot.meskp@gmail.com</strong> ไว้ให้แล้ว ท่านสามารถกดปุ่มด้านล่างเพื่อเปิดส่งผ่าน Gmail ของท่านได้ทันที โดยอีเมลจะถูกบันทึกไว้ใน <strong>in:sent</strong> ของท่านอย่างสมบูรณ์
+                        {language === 'en'
+                          ? 'A ready draft addressed to supot.meskp@gmail.com has been prepared. Click below to review and send directly via your Gmail client.'
+                          : 'ระบบจัดเตรียมแบบร่างที่กรอกข้อมูลโครงการและส่งถึง supot.meskp@gmail.com ไว้ให้แล้ว ท่านสามารถกดปุ่มด้านล่างเพื่อเปิดส่งผ่าน Gmail ของท่านได้ทันที โดยอีเมลจะถูกบันทึกไว้ใน in:sent ของท่านอย่างสมบูรณ์'}
                       </p>
                       <div className="pt-1">
                         <a
                           href={`https://mail.google.com/mail/?view=cm&fs=1&to=supot.meskp@gmail.com&su=${encodeURIComponent(
-                            `[ขอใบเสนอราคา] ${submittedData.name} - ${submittedData.company}`
+                            `[${submittedData.docRefNumber}] ขอใบเสนอราคา: ${submittedData.name} - ${submittedData.company}`
                           )}&body=${encodeURIComponent(
-                            `เรียน ทีมวิศวกร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด\n\nชื่อผู้ติดต่อ: ${submittedData.name}\nบริษัท/หน่วยงาน: ${submittedData.company}\nเบอร์โทรศัพท์: ${submittedData.phone}\nอีเมล: ${submittedData.email}\nขอบข่ายงาน: ${submittedData.serviceType}\n\n(ข้อมูลถูกส่งผ่านระบบเว็บไซต์เรียบร้อยแล้ว และส่งผ่าน Gmail เพื่อบันทึกลงใน Sent Items)`
+                            `Attn: SKP Association Engineering Team
+
+Reference: ${submittedData.docRefNumber}
+Contact Name: ${submittedData.name}
+Company: ${submittedData.company}
+Telephone: ${submittedData.phone}
+Email: ${submittedData.email}
+Scope: ${submittedData.serviceType}
+
+(Sent via skp-association.com inquiry system)`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3.5 py-2 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white text-xs font-semibold inline-flex items-center space-x-2 shadow-lg transition-colors"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>เปิดส่งใน Gmail (บันทึกลง in:sent ทันที)</span>
+                          <span>{language === 'en' ? 'Open in Gmail (Record in in:sent)' : 'เปิดส่งใน Gmail (บันทึกลง in:sent ทันที)'}</span>
                         </a>
                       </div>
                     </div>
@@ -548,37 +657,37 @@ export default function ContactSection() {
                       onClick={() => setSubmitted(false)}
                       className="px-6 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-slate-200 hover:text-white hover:border-skp-cyan/50 font-medium transition-colors"
                     >
-                      ส่งข้อมูลโครงการเพิ่มเติม
+                      {t.sendMoreBtn}
                     </button>
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                <form onSubmit={handleOpenPreview} className="space-y-4 text-left">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        ชื่อ-นามสกุล ผู้ติดต่อ <span className="text-skp-red">*</span>
+                        {t.fullNameLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="text" 
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        placeholder="เช่น คุณสมชาย วิศวกิจ"
+                        placeholder={t.fullNamePlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        บริษัท / นิติบุคคล / องค์กร <span className="text-skp-red">*</span>
+                        {t.companyLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="text" 
                         required
                         value={formData.company}
                         onChange={(e) => setFormData({...formData, company: e.target.value})}
-                        placeholder="เช่น บริษัท ดีเวลลอปเมนท์ จำกัด"
+                        placeholder={t.companyPlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                       />
                     </div>
@@ -587,28 +696,28 @@ export default function ContactSection() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        เบอร์โทรศัพท์ติดต่อ <span className="text-skp-red">*</span>
+                        {t.phoneLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="tel" 
                         required
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        placeholder="08X-XXX-XXXX หรือ 02-XXX-XXXX"
+                        placeholder={t.phonePlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors font-mono"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        อีเมล (Email Address) <span className="text-skp-red">*</span>
+                        {t.emailLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="email" 
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        placeholder="example@company.com"
+                        placeholder={t.emailPlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                       />
                     </div>
@@ -616,31 +725,31 @@ export default function ContactSection() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      ขอบข่ายงานวิศวกรรมที่ต้องการปรึกษา <span className="text-skp-red">*</span>
+                      {t.serviceTypeLabel} <span className="text-skp-red">*</span>
                     </label>
                     <select
                       value={formData.serviceType}
                       onChange={(e) => setFormData({...formData, serviceType: e.target.value})}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                     >
-                      <option value="electrical">ออกแบบและปรึกษาระบบไฟฟ้า / หม้อแปลง / ตู้ MDB</option>
-                      <option value="mep">รับเหมาติดตั้งงานระบบประกอบอาคาร (M&E Turnkey)</option>
-                      <option value="hvac">ระบบปรับอากาศและระบายอากาศ (HVAC Chiller / AHU)</option>
-                      <option value="fire">ระบบดับเพลิงและระบบสุขาภิบาล</option>
-                      <option value="construction">งานรับเหมาก่อสร้างอาคารและโรงงานอุตสาหกรรม</option>
-                      <option value="other">งานประเมินราคาตามแบบ (BOQ / TOR / Tender)</option>
+                      <option value="electrical">{t.serviceOpt1}</option>
+                      <option value="mep">{t.serviceOpt2}</option>
+                      <option value="hvac">{t.serviceOpt3}</option>
+                      <option value="fire">{t.serviceOpt4}</option>
+                      <option value="construction">{t.serviceOpt5}</option>
+                      <option value="other">{t.serviceOpt6}</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      รายละเอียดโครงการ / สถานที่ตั้งโครงการ
+                      {t.descLabel}
                     </label>
                     <textarea 
                       rows={3}
                       value={formData.message}
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
-                      placeholder="ระบุขนาดโครงการ เช่น กำลังไฟฟ้าที่ต้องการ, พื้นที่อาคาร, สถานที่ตั้ง, หรือกำหนดเวลาส่งมอบงาน..."
+                      placeholder={t.descPlaceholder}
                       className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                     />
                   </div>
@@ -649,10 +758,10 @@ export default function ContactSection() {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-semibold text-slate-300">
-                        แนบไฟล์ประกอบ (PDF, Excel, Word, รูปภาพ, AutoCAD)
+                        {t.uploadLabel}
                       </label>
                       <span className="text-[11px] font-mono text-slate-400">
-                        (ไม่บังคับ • สูงสุด 10 ไฟล์ รวมไม่เกิน 15MB)
+                        {t.uploadSub}
                       </span>
                     </div>
 
@@ -682,10 +791,10 @@ export default function ContactSection() {
                         </div>
                         <div>
                           <span className="text-xs sm:text-sm font-semibold text-white group-hover:text-skp-cyan transition-colors">
-                            คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
+                            {t.uploadDropText}
                           </span>
                           <p className="text-[11px] text-slate-400 mt-0.5">
-                            รองรับไฟล์ PDF, Excel, Word, AutoCAD (.dwg / .dxf) และรูปภาพ
+                            {t.uploadDropSub}
                           </p>
                         </div>
 
@@ -712,9 +821,9 @@ export default function ContactSection() {
                     {files.length > 0 && (
                       <div className="mt-3 space-y-1.5">
                         <div className="flex items-center justify-between text-xs text-slate-300 px-1 font-mono">
-                          <span>ไฟล์แนบ ({files.length} รายการ):</span>
+                          <span>{t.filesAttached} ({files.length} {language === 'en' ? 'items' : 'รายการ'}):</span>
                           <span className={totalFileSize > MAX_TOTAL_SIZE ? 'text-rose-400 font-bold' : 'text-skp-cyan'}>
-                            รวม {formatFileSize(totalFileSize)} / สูงสุด 15 MB
+                            {language === 'en' ? `Total ${formatFileSize(totalFileSize)} / Max 15 MB` : `รวม ${formatFileSize(totalFileSize)} / สูงสุด 15 MB`}
                           </span>
                         </div>
 
@@ -744,7 +853,7 @@ export default function ContactSection() {
                                     removeFile(idx);
                                   }}
                                   className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors shrink-0"
-                                  title="ลบไฟล์นี้"
+                                  title={language === 'en' ? 'Remove file' : 'ลบไฟล์นี้'}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -763,7 +872,7 @@ export default function ContactSection() {
                         <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <p className="font-semibold text-white text-sm">
-                            แจ้งเตือนการส่งข้อมูล
+                            {language === 'en' ? 'Notice Regarding Submission' : 'แจ้งเตือนการส่งข้อมูล'}
                           </p>
                           <p className="text-slate-200 leading-relaxed">
                             {submitError}
@@ -773,18 +882,29 @@ export default function ContactSection() {
 
                       <div className="pt-2 border-t border-amber-500/30 flex flex-wrap items-center justify-between gap-2">
                         <span className="text-[11px] text-slate-300">
-                          หรือส่งข้อมูลพร้อมไฟล์แนบหาทีมวิศวกรโดยตรงได้ทันที:
+                          {language === 'en' ? 'Or send directly with attachments to our engineers:' : 'หรือส่งข้อมูลพร้อมไฟล์แนบหาทีมวิศวกรโดยตรงได้ทันที:'}
                         </span>
                         <a 
                           href={`mailto:supot.meskp@gmail.com?subject=${encodeURIComponent(
-                            `ขอใบเสนอราคา / ปรึกษางาน - ${formData.name || 'ลูกค้า'} (${formData.company || '-'})`
+                            `[RFP] ${formData.name || 'Client'} (${formData.company || '-'})`
                           )}&body=${encodeURIComponent(
-                            `เรียน ทีมวิศวกร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด\n\nชื่อผู้ติดต่อ: ${formData.name}\nบริษัท/องค์กร: ${formData.company}\nเบอร์โทร: ${formData.phone}\nอีเมล: ${formData.email}\nขอบข่ายงาน: ${formData.serviceType}\n\nรายละเอียดโครงการ:\n${formData.message}\n\n(กรุณาแนบไฟล์แบบแปลนหรือเอกสารเพิ่มเติมในอีเมลนี้)`
+                            `Attn: SKP Association Engineering Team
+
+Name: ${formData.name}
+Company: ${formData.company}
+Phone: ${formData.phone}
+Email: ${formData.email}
+Scope: ${formData.serviceType}
+
+Project Scope:
+${formData.message}
+
+(Attachments can be added directly to this email)`
                           )}`}
                           className="px-3 py-1.5 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white font-semibold text-xs inline-flex items-center space-x-1.5 shadow transition-colors"
                         >
                           <Mail className="w-3.5 h-3.5" />
-                          <span>เปิดส่งทางอีเมล supot.meskp@gmail.com</span>
+                          <span>{language === 'en' ? 'Send email to supot.meskp@gmail.com' : 'เปิดส่งทางอีเมล supot.meskp@gmail.com'}</span>
                         </a>
                       </div>
                     </div>
@@ -796,23 +916,14 @@ export default function ContactSection() {
                       disabled={loading || totalFileSize > MAX_TOTAL_SIZE}
                       className="w-full py-3.5 px-6 rounded-lg bg-skp-red hover:bg-skp-red-hover text-white font-semibold text-sm shadow-xl shadow-skp-red/30 border border-skp-red-hover transition-all flex items-center justify-center group disabled:opacity-50"
                     >
-                      {loading ? (
-                        <div className="flex items-center space-x-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-white" />
-                          <span>กำลังส่งข้อมูลและแนบไฟล์ไปยัง supot.meskp@gmail.com...</span>
-                        </div>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                          <span>ส่งข้อมูลเพื่อขอใบเสนอราคา / ปรึกษางาน</span>
-                        </>
-                      )}
+                      <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform text-rose-200" />
+                      <span>{t.reviewBeforeSubmitBtn || t.submitBtn}</span>
                     </button>
                   </div>
 
                   <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-400 pt-2 font-mono">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ข้อมูลและไฟล์แนบจะถูกส่งตรงไปยัง email: supot.meskp@gmail.com อย่างปลอดภัย</span>
+                    <span>{t.securityNote}</span>
                   </div>
                 </form>
               )}
@@ -823,6 +934,17 @@ export default function ContactSection() {
         </div>
 
       </div>
+
+      {/* PDF Quotation Document Preview Modal */}
+      {previewData && (
+        <QuotationDocumentPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          onConfirm={handleConfirmSubmit}
+          data={previewData}
+          isLoading={loading}
+        />
+      )}
 
       {/* Interactive Fullscreen Map Modal */}
       {isMapModalOpen && (
@@ -843,14 +965,14 @@ export default function ContactSection() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <h3 className="text-sm sm:text-base font-bold text-white">
-                      แผนที่ตั้งสำนักงานใหญ่ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด
+                      {t.modalTitle}
                     </h3>
                     <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-skp-navy-card border border-skp-cyan/40 text-[11px] text-skp-cyan font-mono">
                       📍 {officeCoordsDisplay}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 font-mono line-clamp-1 sm:line-clamp-none">
-                    41/333 หมู่ที่ 12 ถนนนวลจันทร์ แขวงคลองกุ่ม เขตบึงกุ่ม กรุงเทพมหานคร 10230 (พิกัด GPS: {officeCoordsDisplay})
+                    {t.addressLine} (GPS: {officeCoordsDisplay})
                   </p>
                 </div>
               </div>
@@ -858,7 +980,7 @@ export default function ContactSection() {
                 type="button"
                 onClick={() => setIsMapModalOpen(false)}
                 className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-skp-navy-light transition-colors"
-                aria-label="ปิดหน้าต่างแผนที่"
+                aria-label={language === 'en' ? 'Close map modal' : 'ปิดหน้าต่างแผนที่'}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -871,31 +993,31 @@ export default function ContactSection() {
                 className="w-full h-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Google Maps ปักหมุดที่ตั้ง SKP Association"
+                title="Google Maps SKP Association"
               />
             </div>
 
             {/* Modal Footer Controls */}
             <div className="p-4 bg-skp-navy-deep border-t border-skp-navy-border flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-300 font-mono">
-                <span className="text-skp-cyan font-semibold">พิกัด GPS:</span> {officeCoordsDisplay} | <span className="text-slate-400 font-sans">เข้าได้จากทั้งทาง ถ.รามอินทรา (กม.6) และ ถ.ประเสริฐมนูกิจ</span>
+                <span className="text-skp-cyan font-semibold">GPS:</span> {officeCoordsDisplay} | <span className="text-slate-400 font-sans">{t.locationDirectionsNote}</span>
               </div>
               <div className="flex items-center space-x-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={handleCopyCoords}
                   className="px-3 py-2 bg-skp-navy-card hover:bg-skp-navy-light text-slate-200 hover:text-white rounded-lg text-xs font-medium border border-skp-navy-border flex items-center justify-center transition-colors"
-                  title="คัดลอกพิกัดละติจูด ลองจิจูด"
+                  title={t.copyCoordsBtn}
                 >
                   {copiedCoords ? (
                     <>
                       <Check className="w-3.5 h-3.5 mr-1 text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">คัดลอกพิกัดแล้ว</span>
+                      <span className="text-emerald-400 font-medium">{t.copiedCoordsBtn}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5 mr-1 text-skp-cyan" />
-                      <span>คัดลอกพิกัด GPS</span>
+                      <span>{t.copyCoordsBtn}</span>
                     </>
                   )}
                 </button>
@@ -907,12 +1029,12 @@ export default function ContactSection() {
                   {copiedAddress ? (
                     <>
                       <Check className="w-3.5 h-3.5 mr-1 text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">คัดลอกที่อยู่แล้ว</span>
+                      <span className="text-emerald-400 font-medium">{t.copiedAddressBtn}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                      <span>คัดลอกที่อยู่</span>
+                      <span>{t.copyAddressBtn}</span>
                     </>
                   )}
                 </button>
@@ -923,7 +1045,7 @@ export default function ContactSection() {
                   className="px-4 py-2 bg-skp-red hover:bg-skp-red-hover text-white rounded-lg text-xs font-semibold flex items-center justify-center shadow-lg transition-all"
                 >
                   <Navigation className="w-3.5 h-3.5 mr-1.5" />
-                  <span>นำทาง Google Maps</span>
+                  <span>{t.openGmapsBtn}</span>
                   <ExternalLink className="w-3 h-3 ml-1.5 opacity-80" />
                 </a>
               </div>

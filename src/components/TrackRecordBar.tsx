@@ -2,38 +2,43 @@
 
 import React from 'react';
 import { Calendar, Award, CheckCircle, Shield, Briefcase, Zap } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/translations';
 
 export default function TrackRecordBar() {
+  const { language } = useLanguage();
+  const t = translations[language].trackRecord;
+
   const stats = [
     {
-      value: '15+',
-      unit: 'ปี',
-      label: 'ประสบการณ์ดำเนินธุรกิจ',
-      sublabel: 'จดทะเบียนตั้งแต่ปี พ.ศ. 2554',
+      value: t.stat1Value,
+      unit: t.stat1Unit,
+      label: t.stat1Label,
+      sublabel: t.stat1Sub,
       icon: Calendar,
       color: 'text-skp-cyan',
     },
     {
-      value: '100+',
-      unit: 'โครงการ',
-      label: 'ส่งมอบงานระบบสำเร็จ',
-      sublabel: 'อาคารพาณิชย์ โรงงาน และสถานีย่อย',
+      value: t.stat2Value,
+      unit: t.stat2Unit,
+      label: t.stat2Label,
+      sublabel: t.stat2Sub,
       icon: Briefcase,
       color: 'text-skp-red',
     },
     {
-      value: '100%',
-      unit: 'มาตรฐาน',
-      label: 'วิศวกรรมควบคุมความปลอดภัย',
-      sublabel: 'ตามหลัก วสท. และข้อกำหนดสากล',
+      value: t.stat3Value,
+      unit: t.stat3Unit,
+      label: t.stat3Label,
+      sublabel: t.stat3Sub,
       icon: Shield,
       color: 'text-emerald-400',
     },
     {
-      value: '3',
-      unit: 'สาขาหลัก',
-      label: 'บริการวิศวกรรมครบวงจร',
-      sublabel: 'ออกแบบไฟฟ้า • ติดตั้ง M&E • ก่อสร้าง',
+      value: t.stat4Value,
+      unit: t.stat4Unit,
+      label: t.stat4Label,
+      sublabel: t.stat4Sub,
       icon: Zap,
       color: 'text-amber-400',
     },

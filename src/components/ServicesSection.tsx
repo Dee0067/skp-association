@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { 
   Zap, 
   Building, 
-  Wrench, 
   Check, 
   ArrowRight, 
   Sliders, 
@@ -15,67 +14,40 @@ import {
   Wind,
   Settings2
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/translations';
 
 export default function ServicesSection() {
   const [selectedService, setSelectedService] = useState<number>(0);
+  const { language } = useLanguage();
+  const t = translations[language].services;
 
   const services = [
     {
       id: 0,
-      badge: 'PILLAR 01',
-      title: 'ออกแบบและให้คำปรึกษาด้านวิศวกรรมระบบไฟฟ้า',
-      titleEn: 'Electrical Engineering Design & Consulting',
+      badge: t.pillar1.badge,
+      title: t.pillar1.title,
+      titleEn: t.pillar1.titleEn,
       icon: Zap,
       accentColor: 'text-skp-cyan',
       borderColor: 'border-skp-cyan/40',
       bgGlow: 'from-skp-cyan/10',
-      description: 'บริการออกแบบ วิเคราะห์โหลด คำนวณความปลอดภัยทางวิศวกรรม และให้คำปรึกษาอย่างรอบด้านสำหรับระบบไฟฟ้ากำลังอาคารสูง โรงงานอุตสาหกรรม และโครงการพาณิชย์ขนาดใหญ่ตามมาตรฐาน วสท. และการไฟฟ้านครหลวง/ส่วนภูมิภาค',
-      features: [
-        'ออกแบบระบบไฟฟ้าแรงสูงและสถานีไฟฟ้าย่อย (Substation & High Voltage Distribution)',
-        'คำนวณโหลดไฟฟ้าและจัดทำแบบไดอะแกรมเส้นเดี่ยว (Single-Line Diagrams - SLD)',
-        'วิศวกรรมออกแบบตู้สวิตช์บอร์ดประธาน (MDB, EMDB, Distribution Boards)',
-        'ระบบป้องกันฟ้าผ่า ต่อลงดิน และระบบไฟสำรองฉุกเฉิน (Generator & UPS Integration)',
-        'ตรวจรับรองความปลอดภัยทางไฟฟ้าและให้คำปรึกษาการอนุรักษ์พลังงานในโรงงาน',
-      ],
-      deliverables: ['แบบก่อสร้าง As-Built Drawing', 'รายการคำนวณ Load Schedule', 'เอกสารรับรองโดยวิศวกรวิชาชีพ (กว.)'],
+      description: t.pillar1.desc,
+      features: t.pillar1.features,
+      deliverables: t.pillar1.deliverables,
     },
     {
       id: 1,
-      badge: 'PILLAR 02',
-      title: 'รับเหมาก่อสร้างและติดตั้งงานระบบภายในอาคาร (M&E)',
-      titleEn: 'Building Mechanical & Electrical (M&E) Contracting',
+      badge: t.pillar2.badge,
+      title: t.pillar2.title,
+      titleEn: t.pillar2.titleEn,
       icon: Building,
       accentColor: 'text-skp-red',
       borderColor: 'border-skp-red/40',
       bgGlow: 'from-skp-red/10',
-      description: 'บริการรับเหมาติดตั้งงานระบบวิศวกรรมประกอบอาคารครบวงจร ด้วยทีมงานวิศวกรและช่างผู้เชี่ยวชาญ ครอบคลุมงานระบบปรับอากาศ สุขาภิบาล ดับเพลิง และระบบควบคุมอัจฉริยะสำหรับอาคารสมัยใหม่',
-      features: [
-        'ระบบปรับอากาศและระบายอากาศ (HVAC - Chiller Plant, VRV/VRF, AHU, Air Ducting)',
-        'ระบบป้องกันและระงับอัคคีภัย (Fire Protection, Sprinkler System, Fire Alarm)',
-        'ระบบสุขาภิบาล ระบบประปา และระบบบำบัดน้ำเสีย (Sanitary & Plumbing Engineering)',
-        'งานเดินท่อร้อยสายไฟฟ้า รางเคเบิลเทรย์ และรางวายเวย์ (Cable Tray & Wireway Installation)',
-        'ระบบควบคุมอาคารอัตโนมัติ (Building Automation & Electrical Management System)',
-      ],
-      deliverables: ['งานติดตั้งที่ผ่านการทดสอบ Commissioning', 'รายงานผลทดสอบระบบ (Test Report)', 'การรับประกันผลงานและการบริการบำรุงรักษา'],
-    },
-    {
-      id: 2,
-      badge: 'PILLAR 03',
-      title: 'งานก่อสร้างและงานวิศวกรรมประกอบอาคาร',
-      titleEn: 'Engineering Construction & Civil Works',
-      icon: Wrench,
-      accentColor: 'text-emerald-400',
-      borderColor: 'border-emerald-500/40',
-      bgGlow: 'from-emerald-500/10',
-      description: 'รับเหมาก่อสร้างอาคาร งานโครงสร้างเหล็ก งานต่อเติมและปรับปรุงโรงงานอุตสาหกรรม (Retrofit & Renovation) ที่ต้องการการผสานรวมระหว่างงานสถาปัตยกรรมและงานระบบวิศวกรรมขั้นสูงอย่างแม่นยำ',
-      features: [
-        'งานก่อสร้างโรงงานอุตสาหกรรม คลังสินค้า และอาคารสำนักงาน',
-        'งานปรับปรุงและต่อเติมโครงสร้างทางวิศวกรรม (Industrial Renovation & Cleanrooms)',
-        'งานโครงสร้างคอนกรีตเสริมเหล็กและงานโครงสร้างเหล็กรูปพรรณ (Structural Steel)',
-        'งานระบบพื้นอุตสาหกรรม (Epoxy Floor / Heavy-Duty Concrete Slabs)',
-        'การควบคุมงานตามหลักความปลอดภัยและมาตรฐานสิ่งแวดล้อม (Safety & Quality Standards)',
-      ],
-      deliverables: ['การส่งมอบงานตามแผนเวลา (Time-Schedule Delivery)', 'มาตรฐานการควบคุมคุณภาพ QC/QA', 'คู่มือการใช้งานและเอกสารการส่งมอบโครงการ'],
+      description: t.pillar2.desc,
+      features: t.pillar2.features,
+      deliverables: t.pillar2.deliverables,
     },
   ];
 
@@ -89,13 +61,13 @@ export default function ServicesSection() {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-skp-navy-card border border-skp-navy-border text-xs font-mono text-skp-cyan">
             <Settings2 className="w-3.5 h-3.5 text-skp-cyan" />
-            <span>CORE ENGINEERING DISCIPLINES</span>
+            <span>{t.badge}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            ขอบข่ายบริการวิศวกรรมครบวงจร
+            {t.title}
           </h2>
           <p className="text-slate-300 text-base leading-relaxed">
-            บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด มุ่งมั่นส่งมอบงานวิศวกรรมที่มีความแม่นยำ ปลอดภัย และตรงต่อเวลา เพื่อสนับสนุนการเติบโตอย่างยั่งยืนของโครงการท่าน
+            {t.subtitle}
           </p>
         </div>
 
@@ -129,7 +101,7 @@ export default function ServicesSection() {
                         </span>
                         {isSelected && (
                           <span className="inline-flex items-center text-xs font-mono text-skp-cyan">
-                            ACTIVE INSPECT
+                            {t.activeInspect}
                           </span>
                         )}
                       </div>
@@ -175,7 +147,7 @@ export default function ServicesSection() {
                   {/* Feature Checklist */}
                   <div className="mt-6 space-y-3">
                     <h5 className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-                      ขอบเขตงานและความเชี่ยวชาญเฉพาะทาง (Scope of Expertise):
+                      {t.scopeHeader}
                     </h5>
                     <ul className="space-y-2.5">
                       {active.features.map((item, idx) => (
@@ -191,7 +163,7 @@ export default function ServicesSection() {
 
                   {/* Deliverables tags */}
                   <div className="mt-8 pt-6 border-t border-skp-navy-border/80">
-                    <div className="text-xs font-mono text-slate-400 mb-2">สิ่งที่ส่งมอบตามสัญญา (Deliverables):</div>
+                    <div className="text-xs font-mono text-slate-400 mb-2">{t.deliverablesHeader}</div>
                     <div className="flex flex-wrap gap-2">
                       {active.deliverables.map((deliv, idx) => (
                         <span key={idx} className="px-3 py-1 rounded-md bg-skp-navy-deep border border-skp-navy-border text-xs text-slate-300 font-mono">
@@ -207,7 +179,7 @@ export default function ServicesSection() {
                       href="#contact"
                       className="inline-flex items-center text-sm font-semibold text-skp-cyan hover:text-white transition-colors group"
                     >
-                      <span>ปรึกษางานด้าน {active.title.split(' ')[0]}</span>
+                      <span>{language === 'en' ? `Consultation on ${active.badge}` : `ปรึกษางานด้าน ${active.title.split(' ')[0]}`}</span>
                       <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
                     </a>
                     <span className="text-xs font-mono text-slate-500">

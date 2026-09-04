@@ -6,15 +6,20 @@ import {
   Zap, 
   Wind, 
   Flame, 
+  Droplets,
   Info, 
   CheckCircle2, 
   Activity,
   Sliders,
   Maximize2
 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { translations } from '@/translations';
 
 export default function SchematicExplorer() {
-  const [activeSystem, setActiveSystem] = useState<'electrical' | 'hvac' | 'fire'>('electrical');
+  const [activeSystem, setActiveSystem] = useState<'electrical' | 'hvac' | 'fire' | 'sanitary'>('electrical');
+  const { language } = useLanguage();
+  const t = translations[language].schematic;
 
   return (
     <section id="schematic" className="py-20 lg:py-28 bg-skp-navy-dark relative overflow-hidden border-t border-b border-skp-navy-border">
@@ -26,19 +31,19 @@ export default function SchematicExplorer() {
         <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-skp-navy-card border border-skp-navy-border text-xs font-mono text-skp-cyan">
             <Cpu className="w-3.5 h-3.5 text-skp-cyan" />
-            <span>INTERACTIVE SYSTEM SCHEMATICS</span>
+            <span>{t.badge}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            ผังโครงข่ายวิศวกรรมระบบประกอบอาคาร
+            {t.title}
           </h2>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            สัมผัสความแม่นยำในการออกแบบและเชื่อมโยงระบบวิศวกรรมภายในอาคาร โดยทีมงาน บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด
+            {t.subtitle}
           </p>
         </div>
 
         {/* System Tabs */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex p-1.5 rounded-xl bg-skp-navy-card border border-skp-navy-border space-x-2">
+          <div className="inline-flex flex-wrap justify-center p-1.5 rounded-xl bg-skp-navy-card border border-skp-navy-border gap-2">
             <button
               type="button"
               onClick={() => setActiveSystem('electrical')}
@@ -49,7 +54,7 @@ export default function SchematicExplorer() {
               }`}
             >
               <Zap className="w-4 h-4 text-skp-cyan" />
-              <span>ระบบไฟฟ้ากำลัง (Electrical Power)</span>
+              <span>{t.tabElectrical}</span>
             </button>
 
             <button
@@ -62,7 +67,7 @@ export default function SchematicExplorer() {
               }`}
             >
               <Wind className="w-4 h-4 text-sky-400" />
-              <span>ระบบปรับอากาศ (HVAC Chiller)</span>
+              <span>{t.tabHvac}</span>
             </button>
 
             <button
@@ -75,7 +80,20 @@ export default function SchematicExplorer() {
               }`}
             >
               <Flame className="w-4 h-4 text-skp-red" />
-              <span>ระบบดับเพลิง (Fire Protection)</span>
+              <span>{t.tabFire}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveSystem('sanitary')}
+              className={`flex items-center space-x-2 px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                activeSystem === 'sanitary'
+                  ? 'bg-skp-navy-light text-teal-400 shadow-md border border-teal-400/40'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Droplets className="w-4 h-4 text-teal-400" />
+              <span>{t.tabSanitary}</span>
             </button>
           </div>
         </div>
@@ -157,15 +175,15 @@ export default function SchematicExplorer() {
                 {/* Technical Parameter Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono">
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">แรงดันไฟฟ้าขาเข้า:</span>
+                    <span className="text-slate-400 block">{t.paramVolt}</span>
                     <span className="text-white font-bold text-sm">22 - 24 kV (Three-Phase)</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">พิกัดกระแสลัดวงจร (Icu):</span>
+                    <span className="text-slate-400 block">{t.paramIcu}</span>
                     <span className="text-skp-cyan font-bold text-sm">50 - 65 kA @ 1 sec</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">มาตรฐานการออกแบบ:</span>
+                    <span className="text-slate-400 block">{t.paramStandard}</span>
                     <span className="text-emerald-400 font-bold text-sm">วสท. 022001-22 / IEC 61439</span>
                   </div>
                 </div>
@@ -202,15 +220,15 @@ export default function SchematicExplorer() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono">
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">อุณหภูมิน้ำเย็น (CHW Temp):</span>
+                    <span className="text-slate-400 block">{t.paramChw}</span>
                     <span className="text-sky-400 font-bold text-sm">7°C Supply / 12°C Return</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">ประสิทธิภาพประหยัดพลังงาน:</span>
+                    <span className="text-slate-400 block">{t.paramEnergy}</span>
                     <span className="text-emerald-400 font-bold text-sm">VFD Inverter Variable Speed</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">มาตรฐานการออกแบบ:</span>
+                    <span className="text-slate-400 block">{t.paramStandard}</span>
                     <span className="text-white font-bold text-sm">ASHRAE 90.1 / SMACNA</span>
                   </div>
                 </div>
@@ -244,16 +262,77 @@ export default function SchematicExplorer() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono">
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">แรงดันใช้งาน (Operating Pressure):</span>
+                    <span className="text-slate-400 block">{t.paramPressure}</span>
                     <span className="text-skp-red font-bold text-sm">175 PSI (UL/FM Listed)</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">ระบบส่งสัญญาณอัตโนมัติ:</span>
+                    <span className="text-slate-400 block">{t.paramAlarm}</span>
                     <span className="text-amber-400 font-bold text-sm">Addressable Fire Alarm</span>
                   </div>
                   <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
-                    <span className="text-slate-400 block">มาตรฐานการออกแบบ:</span>
+                    <span className="text-slate-400 block">{t.paramStandard}</span>
                     <span className="text-white font-bold text-sm">NFPA 13, 14, 20 & 72</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSystem === 'sanitary' && (
+              <div className="w-full max-w-4xl space-y-8">
+                {/* Sanitary & Plumbing Schematic Graphic */}
+                <svg className="w-full h-48 sm:h-64" viewBox="0 0 800 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Clean Water Supply Line (Teal) */}
+                  <path d="M 120 95 L 260 95" stroke="#2DD4BF" strokeWidth="3" className="animate-circuit" />
+                  <path d="M 360 95 L 500 70 L 660 70" stroke="#2DD4BF" strokeWidth="3" className="animate-circuit" />
+                  
+                  {/* Wastewater Drainage Line (Sky/Emerald) */}
+                  <path d="M 660 170 L 500 170 L 360 170" stroke="#38BDF8" strokeWidth="3" className="animate-circuit" />
+                  <path d="M 260 170 L 120 170" stroke="#34D399" strokeWidth="3.5" className="animate-circuit" />
+
+                  {/* Water Incomer / Reservoir */}
+                  <rect x="40" y="65" width="80" height="60" rx="8" fill="#0B0F28" stroke="#2DD4BF" strokeWidth="2" />
+                  <text x="80" y="93" fill="#FFFFFF" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">MWA SUPPLY</text>
+                  <text x="80" y="107" fill="#2DD4BF" fontSize="8" textAnchor="middle" fontFamily="monospace">Ground Tank 200m³</text>
+
+                  {/* Booster Pump System */}
+                  <rect x="260" y="60" width="100" height="70" rx="8" fill="#111738" stroke="#2DD4BF" strokeWidth="3" />
+                  <text x="310" y="90" fill="#FFFFFF" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="monospace">BOOSTER PUMP</text>
+                  <text x="310" y="105" fill="#2DD4BF" fontSize="8" textAnchor="middle" fontFamily="monospace">Triplex VFD Inverter</text>
+                  <text x="310" y="118" fill="#94A3B8" fontSize="7.5" textAnchor="middle" fontFamily="monospace">Const. Press 4.5 Bar</text>
+
+                  {/* Fixtures & Roof Tank Distribution */}
+                  <rect x="660" y="45" width="110" height="50" rx="6" fill="#0B0F28" stroke="#2DD4BF" strokeWidth="1.5" />
+                  <text x="715" y="68" fill="#FFFFFF" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">DOMESTIC RISER</text>
+                  <text x="715" y="82" fill="#2DD4BF" fontSize="8" textAnchor="middle" fontFamily="monospace">Fixtures & Roof Tank</text>
+
+                  {/* Waste Inflow */}
+                  <rect x="660" y="145" width="110" height="50" rx="6" fill="#0B0F28" stroke="#38BDF8" strokeWidth="1.5" />
+                  <text x="715" y="168" fill="#FFFFFF" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">SOIL & WASTE</text>
+                  <text x="715" y="182" fill="#38BDF8" fontSize="8" textAnchor="middle" fontFamily="monospace">Gravity Downpipes</text>
+
+                  {/* WWTP Treatment Plant */}
+                  <rect x="260" y="145" width="100" height="55" rx="8" fill="#111738" stroke="#34D399" strokeWidth="2.5" />
+                  <text x="310" y="170" fill="#FFFFFF" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="monospace">WWTP SYSTEM</text>
+                  <text x="310" y="185" fill="#34D399" fontSize="8" textAnchor="middle" fontFamily="monospace">Aeration Treatment</text>
+
+                  {/* Discharge Point */}
+                  <rect x="40" y="145" width="80" height="55" rx="8" fill="#0B0F28" stroke="#34D399" strokeWidth="2" />
+                  <text x="80" y="170" fill="#FFFFFF" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PUBLIC DRAIN</text>
+                  <text x="80" y="185" fill="#34D399" fontSize="8" textAnchor="middle" fontFamily="monospace">BOD &lt; 20 mg/L</text>
+                </svg>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono">
+                  <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
+                    <span className="text-slate-400 block">{t.paramWaterSupply}</span>
+                    <span className="text-teal-400 font-bold text-sm">Triplex Inverter Booster Pump</span>
+                  </div>
+                  <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
+                    <span className="text-slate-400 block">{t.paramWwtp}</span>
+                    <span className="text-emerald-400 font-bold text-sm">Biological Aeration Process</span>
+                  </div>
+                  <div className="p-3 bg-skp-navy-deep rounded-lg border border-skp-navy-border">
+                    <span className="text-slate-400 block">{t.paramStandard}</span>
+                    <span className="text-white font-bold text-sm">วสท. 011003-22 / IPC Standards</span>
                   </div>
                 </div>
               </div>
