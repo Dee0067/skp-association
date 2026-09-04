@@ -68,18 +68,27 @@ export default function ProjectShowcase() {
     if (modalProject?.gallery && modalThumbnailsRef.current) {
       const activeThumb = modalThumbnailsRef.current.children[modalPhotoIndex] as HTMLElement;
       if (activeThumb) {
-        activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const strip = modalThumbnailsRef.current;
+        const targetLeft = activeThumb.offsetLeft - strip.clientWidth / 2 + activeThumb.clientWidth / 2;
+        strip.scrollTo({ left: targetLeft, behavior: 'smooth' });
       }
     }
   }, [modalPhotoIndex, modalProject]);
 
-  // Auto-scroll card thumbnail strip when changing photo on the card
+  const isFirstCardMount = useRef(true);
+
+  // Auto-scroll card thumbnail strip when changing photo on the card (skip initial mount to prevent page scroll)
   useEffect(() => {
+    if (isFirstCardMount.current) {
+      isFirstCardMount.current = false;
+      return;
+    }
     const activeIdx = cardPhotoIndex[1] || 0;
     const cardStrip = cardThumbnailsRef.current[1];
     if (cardStrip && cardStrip.children[activeIdx]) {
       const activeBtn = cardStrip.children[activeIdx] as HTMLElement;
-      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      const targetLeft = activeBtn.offsetLeft - cardStrip.clientWidth / 2 + activeBtn.clientWidth / 2;
+      cardStrip.scrollTo({ left: targetLeft, behavior: 'smooth' });
     }
   }, [cardPhotoIndex]);
 

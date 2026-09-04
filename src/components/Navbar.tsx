@@ -14,6 +14,11 @@ export default function Navbar() {
   const t = translations[language].nav;
 
   useEffect(() => {
+    // Ensure page opens at the top unless an explicit section hash is requested
+    if (typeof window !== 'undefined' && !window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
