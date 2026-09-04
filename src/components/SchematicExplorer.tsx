@@ -58,6 +58,7 @@ const personnelList: Personnel[] = [
     nameTh: 'คุณสุพจน์ มั่นสิทธิกุล',
     nameEn: 'Mr. Supot Munsittikul',
     phone: '093-695 6445',
+    email: 'supot.meskp@gmail.com',
     photo: '/organization/person-supot.jpg',
     division: 'head_office',
     divisionBadgeTh: 'สำนักงานใหญ่ (HQ)',
