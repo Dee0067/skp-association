@@ -459,81 +459,6 @@ export default function SchematicExplorer() {
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             {t.subtitle}
           </p>
-
-          <p className="text-xs font-mono text-slate-400 pt-1">
-            {t.docInfo}
-          </p>
-        </div>
-
-        {/* Action Controls Bar: Division Tabs & Fullscreen / Download Actions */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10 pb-6 border-b border-skp-navy-border/70">
-          {/* Division Filter Tabs */}
-          <div className="inline-flex flex-wrap items-center p-1 rounded-xl bg-skp-navy-card border border-skp-navy-border gap-1.5 shadow-md">
-            <button
-              type="button"
-              onClick={() => setActiveTab('all')}
-              className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                activeTab === 'all'
-                  ? 'bg-skp-navy-light text-skp-cyan shadow border border-skp-cyan/40'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-skp-cyan" />
-              <span>{t.tabAll}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('head_office')}
-              className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                activeTab === 'head_office'
-                  ? 'bg-indigo-950 text-indigo-300 shadow border border-indigo-500/40'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Building2 className="w-4 h-4 text-indigo-400" />
-              <span>{t.tabHeadOffice}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('site_office')}
-              className={`flex items-center space-x-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                activeTab === 'site_office'
-                  ? 'bg-amber-950 text-amber-300 shadow border border-amber-500/40'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <HardHat className="w-4 h-4 text-amber-400" />
-              <span>{t.tabSiteOffice}</span>
-            </button>
-          </div>
-
-          {/* Quick Action Buttons: Fullscreen Modal & Download PDF */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                setModalViewMode('drawing');
-                setIsFullscreenOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-skp-cyan/15 hover:bg-skp-cyan/25 border border-skp-cyan/40 hover:border-skp-cyan text-skp-cyan text-xs sm:text-sm font-bold shadow-md hover:shadow-skp-cyan/20 transition-all duration-200"
-            >
-              <Maximize2 className="w-4 h-4" />
-              <span>{t.fullscreenBtn}</span>
-            </button>
-
-            <a
-              href="/organization/skp-organization-chart.pdf"
-              download="SKP-Organization-and-Key-Personnel.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-skp-navy-card hover:bg-skp-navy-light border border-skp-navy-border hover:border-slate-400/40 text-slate-200 hover:text-white text-xs sm:text-sm font-medium shadow-md transition-all duration-200"
-            >
-              <Download className="w-4 h-4 text-slate-300" />
-              <span>{t.downloadPdfBtn}</span>
-            </a>
-          </div>
         </div>
 
         {/* UNIFIED ENCLOSING ORGANIZATION FRAME (กรอบครอบผังองค์กรทั้งหมดให้เป็นส่วนเดียวกัน) */}
@@ -565,11 +490,36 @@ export default function SchematicExplorer() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-mono font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {language === 'en' ? 'Certified Structure' : 'โครงสร้างรับรองอย่างเป็นทางการ'}
               </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setModalViewMode('drawing');
+                  setIsFullscreenOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-skp-cyan/15 hover:bg-skp-cyan/25 border border-skp-cyan/40 hover:border-skp-cyan text-skp-cyan text-xs font-semibold shadow-sm transition-all"
+                title={language === 'en' ? 'Fullscreen View' : 'เปิดดูผังเต็มจอ'}
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Fullscreen' : 'เต็มจอ'}</span>
+              </button>
+
+              <a
+                href="/organization/skp-organization-chart.pdf"
+                download="SKP-Organization-and-Key-Personnel.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-skp-navy-deep/80 hover:bg-skp-navy-light border border-skp-navy-border hover:border-slate-400/40 text-slate-200 hover:text-white text-xs font-medium transition-all"
+                title={language === 'en' ? 'Download PDF' : 'ดาวน์โหลด PDF'}
+              >
+                <Download className="w-3.5 h-3.5 text-slate-300" />
+                <span>PDF</span>
+              </a>
             </div>
           </div>
 
@@ -717,62 +667,6 @@ export default function SchematicExplorer() {
             </div>
           )}
         </div>
-        </div>
-
-        {/* OFFICIAL DRAWING TEASER STRIP */}
-        <div className="mt-14 rounded-2xl bg-gradient-to-r from-skp-navy-card via-skp-navy-deep to-skp-navy-card border border-skp-navy-border p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-skp-cyan/5 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex items-center gap-4">
-            <div className="p-3.5 rounded-xl bg-skp-cyan/10 border border-skp-cyan/30 text-skp-cyan flex-shrink-0">
-              <FileText className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-skp-cyan/15 border border-skp-cyan/40 text-skp-cyan font-semibold">
-                  Official Document (300 DPI)
-                </span>
-                <span className="text-xs font-mono text-slate-400">
-                  Rev. 0 • Sep 15, 2025
-                </span>
-              </div>
-              <h3 className="text-base sm:text-lg font-bold text-white">
-                {language === 'en'
-                  ? 'Original Engineering Organization Chart & Designated Key Personnel'
-                  : 'แบบแปลนแผนผังโครงสร้างบุคลากรทางการ (Organization & Key Personnel Drawing)'}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
-                {language === 'en'
-                  ? 'High-definition vector scan of the certified organizational hierarchy. Inspectable in zoomable full-screen mode.'
-                  : 'เอกสารแบบแปลนลายลักษณ์อักษรแสดงสายการบังคับบัญชา พร้อมรูปถ่ายและข้อมูลติดต่อ รองรับการซูมขยายเต็มจอความละเอียดสูง'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 flex-shrink-0 w-full md:w-auto justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                setModalViewMode('drawing');
-                setIsFullscreenOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-skp-cyan text-skp-navy-deep font-bold text-xs sm:text-sm shadow-lg shadow-skp-cyan/20 hover:bg-sky-300 transition-all flex-1 md:flex-initial"
-            >
-              <Maximize2 className="w-4 h-4" />
-              <span>{t.fullscreenBtn}</span>
-            </button>
-
-            <a
-              href="/organization/skp-organization-chart.pdf"
-              download="SKP-Organization-and-Key-Personnel.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-3 rounded-xl bg-skp-navy-card hover:bg-skp-navy-light border border-skp-navy-border hover:border-slate-400/40 text-slate-200 hover:text-white transition-all"
-              title={language === 'en' ? 'Download PDF' : 'ดาวน์โหลดไฟล์ PDF'}
-            >
-              <Download className="w-5 h-5" />
-            </a>
-          </div>
         </div>
       </div>
 
