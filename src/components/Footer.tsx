@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { ShieldCheck, Phone, Smartphone, Printer, MapPin, ArrowUp, Zap, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/translations';
@@ -145,13 +146,21 @@ export default function Footer() {
             © {new Date().getFullYear()} {language === 'en' ? 'SKP Association Co., Ltd. ' : 'บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด (SKP Association Co., Ltd.) '}{t.rightsReserved}
           </div>
 
-          <div className="flex items-center space-x-6 text-[11px]">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px]">
             <a href="#credentials" className="hover:text-skp-cyan transition-colors">
               {t.standardsLink}
             </a>
             <a href="#contact" className="hover:text-skp-cyan transition-colors">
               {t.contactLink}
             </a>
+            <Link 
+              href="/admin" 
+              className="text-slate-400 hover:text-skp-cyan transition-colors flex items-center font-mono"
+              title="ระบบจัดการรายชื่อลูกค้าและสิทธิ์การเข้าถึง (RBAC Portal)"
+            >
+              <ShieldCheck className="w-3 h-3 mr-1 text-skp-cyan" />
+              <span>{language === 'en' ? 'Staff Portal (RBAC)' : 'ระบบจัดการข้อมูลลูกค้า (Portal)'}</span>
+            </Link>
             <button
               type="button"
               onClick={scrollToTop}

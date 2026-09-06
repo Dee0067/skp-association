@@ -1,0 +1,101 @@
+// ==============================================================================
+// SKP ASSOCIATION CO., LTD. (บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด)
+// PRISMA ORM SCHEMA: Customer Inquiries & Role-Based Access Control (RBAC)
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  managing_director           // กรรมการผู้จัดการ (Full Access / Superadmin)
+  admin_coordinator_manager   // ผู้จัดการฝ่ายธุรการและประสานงาน (Manager)
+  project_engineer            // วิศวกรโครงการ (Operational - สิทธิ์เท่ากับผู้จัดการทั้งหมด)
+}
+
+enum InquiryStatus {
+  NEW         // คำขอใหม่ รอดำเนินการ
+  REVIEWING   // กำลังตรวจสอบเอกสาร
+  ASSIGNED    // มอบหมายวิศวกรแล้ว
+  QUOTED      // จัดทำและส่งใบเสนอราคาแล้ว
+  COMPLETED   // ดำเนินการเสร็จสิ้น
+  CANCELLED   // ยกเลิกคำขอ
+}
+
+model Role {
+  id          String    @id
+  nameTh      String    @map("name_th")
+  nameEn      String    @map("name_en")
+  description String?
+  users       User[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("roles")
+}
+
+model User {
+  id                  String             @id @default(uuid())
+  email               String             @unique
+  fullName            String             @map("full_name")
+  phone               String?
+  roleId              String             @map("role_id")
+  role                Role               @relation(fields: [roleId], references: [id])
+  isActive            Boolean            @default(true) @map("is_active")
+  assignedInquiries   CustomerInquiry[]  @relation("AssignedEngineer")
+  activityLogs        InquiryActivityLog[]
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model CustomerInquiry {
+  id                          String              @id @default(uuid())
+  docRefNumber                String              @unique @map("doc_ref_number")
+  
+  // ข้อมูลลูกค้า
+  firstName                   String              @map("first_name")
+  lastName                    String              @map("last_name")
+  companyName                 String              @map("company_name")
+  phoneNumber                 String              @map("phone_number")
+  email                       String
+  
+  // ขอบข่ายงานวิศวกรรม & รายละเอียด
+  engineeringScope            String              @map("engineering_scope")
+  projectDetailsAndLocation   String              @map("project_details_and_location")
+  
+  // การจัดการภายใน & มอบหมายงาน
+  status                      InquiryStatus       @default(NEW)
+  assignedToUserId            String?             @map("assigned_to_user_id")
+  assignedToUser              User?               @relation("AssignedEngineer", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  engineerNotes               String?             @map("engineer_notes")
+  attachmentsCount            Int                 @default(0) @map("attachments_count")
+  
+  activityLogs                InquiryActivityLog[]
+  createdAt                   DateTime            @default(now()) @map("created_at")
+  updatedAt                   DateTime            @updatedAt @map("updated_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([status])
+  @@index([phoneNumber])
+  @@index([email])
+  @@map("customer_inquiries")
+}
+
+model InquiryActivityLog {
+  id                  String           @id @default(uuid())
+  inquiryId           String           @map("inquiry_id")
+  inquiry             CustomerInquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  performedByUserId   String?          @map("performed_by_user_id")
+  performedByUser     User?            @relation(fields: [performedByUserId], references: [id], onDelete: SetNull)
+  action              String
+  details             String?
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  @@map("inquiry_activity_logs")
+}

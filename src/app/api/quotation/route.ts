@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { createInquiry } from '@/lib/inquiriesStore';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,19 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     
-    const name = (formData.get('name') as string) || '-';
+    const rawName = (formData.get('name') as string) || '';
+    let firstName = (formData.get('firstName') as string) || '';
+    let lastName = (formData.get('lastName') as string) || '';
+
+    if (!firstName && rawName) {
+      const parts = rawName.trim().split(/\s+/);
+      firstName = parts[0] || '-';
+      lastName = parts.slice(1).join(' ') || '-';
+    } else if (!rawName && (firstName || lastName)) {
+      // If firstName/lastName supplied, ensure fallback name
+    }
+    const name = `${firstName} ${lastName}`.trim() || rawName || '-';
+
     const company = (formData.get('company') as string) || '-';
     const phone = (formData.get('phone') as string) || '-';
     const email = (formData.get('email') as string) || '';
@@ -57,6 +70,27 @@ export async function POST(request: NextRequest) {
       if (entry instanceof File && entry.size > 0) {
         files.push(entry);
       }
+    }
+
+    // Auto-save Customer Inquiry to Database
+    try {
+      createInquiry({
+        docRefNumber,
+        firstName: firstName || name || '-',
+        lastName: lastName || '-',
+        companyName: company || '-',
+        phoneNumber: phone || '-',
+        email,
+        engineeringScope: serviceLabel,
+        projectDetailsAndLocation: message,
+        status: 'NEW',
+        assignedToUserId: null,
+        assignedToName: null,
+        engineerNotes: null,
+        attachmentsCount: files.length,
+      });
+    } catch (dbErr) {
+      console.error('Failed to auto-save inquiry to database:', dbErr);
     }
 
     const fileListHtml = files.length > 0

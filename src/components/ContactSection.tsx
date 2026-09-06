@@ -37,6 +37,8 @@ export default function ContactSection() {
   const t = translations[language].contact;
 
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     name: '',
     company: '',
     phone: '',
@@ -182,7 +184,9 @@ export default function ContactSection() {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!formData.name.trim() || !formData.company.trim() || !formData.phone.trim() || !formData.email.trim()) {
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim() || formData.name.trim();
+
+    if ((!formData.firstName.trim() && !formData.name.trim()) || !formData.company.trim() || !formData.phone.trim() || !formData.email.trim()) {
       setSubmitError(language === 'en' ? 'Please fill in all required fields marked with *' : 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
       return;
     }
@@ -215,7 +219,7 @@ export default function ContactSection() {
     const refCode = `RFQ-${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     setPreviewData({
-      name: formData.name.trim(),
+      name: fullName,
       company: formData.company.trim(),
       phone: formData.phone.trim(),
       email: formData.email.trim(),
@@ -238,6 +242,8 @@ export default function ContactSection() {
 
     try {
       const data = new FormData();
+      data.append('firstName', formData.firstName);
+      data.append('lastName', formData.lastName);
       data.append('name', previewData.name);
       data.append('company', previewData.company);
       data.append('phone', previewData.phone);
@@ -326,6 +332,8 @@ export default function ContactSection() {
       setSubmitted(true);
       setFiles([]);
       setFormData({
+        firstName: '',
+        lastName: '',
         name: '',
         company: '',
         phone: '',
@@ -663,36 +671,67 @@ Scope: ${submittedData.serviceType}
                 </div>
               ) : (
                 <form onSubmit={handleOpenPreview} className="space-y-4 text-left">
+                  {/* ชื่อ และ นามสกุล ผู้ติดต่อ */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        {t.fullNameLabel} <span className="text-skp-red">*</span>
+                        {t.firstNameLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="text" 
                         required
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        placeholder={t.fullNamePlaceholder}
+                        value={formData.firstName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            firstName: val,
+                            name: `${val} ${prev.lastName}`.trim(),
+                          }));
+                        }}
+                        placeholder={t.firstNamePlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        {t.companyLabel} <span className="text-skp-red">*</span>
+                        {t.lastNameLabel} <span className="text-skp-red">*</span>
                       </label>
                       <input 
                         type="text" 
                         required
-                        value={formData.company}
-                        onChange={(e) => setFormData({...formData, company: e.target.value})}
-                        placeholder={t.companyPlaceholder}
+                        value={formData.lastName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            lastName: val,
+                            name: `${prev.firstName} ${val}`.trim(),
+                          }));
+                        }}
+                        placeholder={t.lastNamePlaceholder}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
                       />
                     </div>
                   </div>
 
+                  {/* ชื่อบริษัท */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      {t.companyLabel} <span className="text-skp-red">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={formData.company}
+                      onChange={(e) => setFormData({...formData, company: e.target.value})}
+                      placeholder={t.companyPlaceholder}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-skp-navy-deep border border-skp-navy-border text-sm text-white focus:outline-none focus:border-skp-cyan transition-colors"
+                    />
+                  </div>
+
+                  {/* เบอร์โทรศัพท์ และ อีเมล */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5">
