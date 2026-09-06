@@ -29,7 +29,12 @@ import {
   FileText,
   UserCheck,
   Briefcase,
-  ChevronRight
+  ChevronRight,
+  Database,
+  Copy,
+  Check,
+  Terminal,
+  Layers
 } from 'lucide-react';
 import { 
   CustomerInquiry, 
@@ -47,6 +52,11 @@ export default function AdminInquiriesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedScope, setSelectedScope] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  
+  // DB Guide Modal State (Option C)
+  const [isDbGuideOpen, setIsDbGuideOpen] = useState(false);
+  const [activeDbTab, setActiveDbTab] = useState<'postgres' | 'mysql' | 'prisma' | 'guide'>('postgres');
+  const [copiedCode, setCopiedCode] = useState(false);
   
   // Selected inquiry for detail/edit modal
   const [selectedInquiry, setSelectedInquiry] = useState<CustomerInquiry | null>(null);
@@ -320,9 +330,19 @@ export default function AdminInquiriesPage() {
             </div>
           </div>
 
-          {/* Role Switcher Indicator */}
+          {/* Role Switcher & DB Guide Button */}
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-400 hidden sm:inline-block">จำลองตำแหน่งผู้เข้าใช้งาน:</span>
+            <button
+              type="button"
+              onClick={() => setIsDbGuideOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-white text-xs font-mono flex items-center space-x-1.5 transition-colors border border-slate-700"
+              title="ดูชุดสคริปต์ SQL DDL + Prisma + คำแนะนำการเชื่อมต่อ Cloud DB (Option C)"
+            >
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden md:inline">SQL / Cloud DB (Option C)</span>
+            </button>
+
+            <span className="text-xs text-slate-400 hidden lg:inline-block">จำลองตำแหน่ง:</span>
             <div className="inline-flex p-1 rounded-xl bg-slate-950 border border-slate-800">
               {(['managing_director', 'admin_coordinator_manager', 'project_engineer'] as RoleType[]).map((r) => {
                 const roleDef = ROLES[r];
@@ -953,6 +973,223 @@ export default function AdminInquiriesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DATABASE GUIDE & OPTION C MODAL */}
+      {isDbGuideOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Database className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center">
+                    ชุดสคริปต์ฐานข้อมูล & คู่มือเชื่อมต่อ Cloud Database (Option C)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    รองรับทั้งการใช้งานทันทีแบบ Local และเชื่อมต่อไปยัง PostgreSQL, Supabase, MySQL หรือ Prisma ORM
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDbGuideOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode selection tabs */}
+            <div className="flex items-center space-x-2 border-b border-slate-800 pb-2 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setActiveDbTab('postgres')}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  activeDbTab === 'postgres'
+                    ? 'bg-cyan-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                PostgreSQL / Supabase (RLS)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDbTab('prisma')}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  activeDbTab === 'prisma'
+                    ? 'bg-cyan-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                Prisma ORM Schema
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDbTab('mysql')}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  activeDbTab === 'mysql'
+                    ? 'bg-cyan-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                MySQL / MariaDB
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDbTab('guide')}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  activeDbTab === 'guide'
+                    ? 'bg-cyan-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                🚀 ขั้นตอนเชื่อมต่อ Cloud
+              </button>
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto space-y-3 font-sans text-xs">
+              {activeDbTab === 'guide' ? (
+                <div className="space-y-3 text-slate-300 leading-relaxed">
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <h4 className="font-bold text-cyan-400 flex items-center">
+                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mr-2 text-[11px]">1</span>
+                      โหมด Local / In-Memory (กำลังทำงานอยู่ในปัจจุบัน)
+                    </h4>
+                    <p className="text-slate-400 text-xs">
+                      พร้อมใช้งานทันทีโดยไม่ต้องตั้งค่าฐานข้อมูลภายนอก สามารถบันทึก แก้ไข มอบหมายงาน และดาวน์โหลดรายงาน Excel ได้ทันที
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <h4 className="font-bold text-emerald-400 flex items-center">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center mr-2 text-[11px]">2</span>
+                      เชื่อมต่อ Supabase หรือ Neon (PostgreSQL Cloud ฟรี)
+                    </h4>
+                    <p className="text-slate-400 text-xs">
+                      เปิด Supabase &gt; ไปที่ SQL Editor &gt; คัดลอกคำสั่งจากแท็บ &quot;PostgreSQL / Supabase&quot; ไปวางแล้วกด Run เพื่อสร้างตารางและนโยบายความปลอดภัย RLS อัตโนมัติ จากนั้นใส่ <code className="text-cyan-300">DATABASE_URL</code> ใน <code className="text-cyan-300">.env.local</code>
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <h4 className="font-bold text-amber-400 flex items-center">
+                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center mr-2 text-[11px]">3</span>
+                      ใช้งานผ่าน Prisma CLI &amp; Prisma Studio
+                    </h4>
+                    <p className="text-slate-400 text-xs font-mono">
+                      npx prisma db push<br />
+                      npx prisma studio
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      คำสั่งข้างต้นจะเปิดหน้าจอ Web GUI (http://localhost:5555) เพื่อดูข้อมูลตารางได้แบบเรียลไทม์
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="flex justify-between items-center bg-slate-950 px-3 py-1.5 rounded-t-lg border-x border-t border-slate-800">
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {activeDbTab === 'postgres' && 'database/schema.sql (PostgreSQL 14+ / Supabase RLS)'}
+                      {activeDbTab === 'prisma' && 'prisma/schema.prisma (Prisma ORM Model)'}
+                      {activeDbTab === 'mysql' && 'database/schema.mysql.sql (MySQL 8.0+)'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        let textToCopy = '';
+                        if (activeDbTab === 'postgres') {
+                          textToCopy = `-- SKP Customer Database Schema (PostgreSQL/Supabase)
+-- ดูไฟล์เต็มได้ที่ database/schema.sql ในโปรเจกต์`;
+                        }
+                        navigator.clipboard.writeText(textToCopy);
+                        setCopiedCode(true);
+                        setTimeout(() => setCopiedCode(false), 2000);
+                      }}
+                      className="inline-flex items-center space-x-1 text-[11px] font-mono text-cyan-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700"
+                    >
+                      {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedCode ? 'คัดลอกแล้ว' : 'คัดลอกไฟล์'}</span>
+                    </button>
+                  </div>
+                  <pre className="p-3.5 rounded-b-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-72 leading-relaxed">
+                    {activeDbTab === 'postgres' && `CREATE TABLE customer_inquiries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    doc_ref_number VARCHAR(50) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    company_name VARCHAR(200) NOT NULL,
+    phone_number VARCHAR(50) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    engineering_scope VARCHAR(100) NOT NULL,
+    project_details_and_location TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'NEW',
+    assigned_to_user_id UUID REFERENCES users(id),
+    engineer_notes TEXT,
+    attachments_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- RLS POLICIES
+ALTER TABLE customer_inquiries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Managing Director Full Access" ON customer_inquiries FOR ALL TO authenticated USING (get_current_user_role() = 'managing_director');
+CREATE POLICY "Project Engineer Access" ON customer_inquiries FOR SELECT TO authenticated USING (get_current_user_role() = 'project_engineer');
+`}
+                    {activeDbTab === 'prisma' && `model CustomerInquiry {
+  id                          String              @id @default(uuid())
+  docRefNumber                String              @unique @map("doc_ref_number")
+  firstName                   String              @map("first_name")
+  lastName                    String              @map("last_name")
+  companyName                 String              @map("company_name")
+  phoneNumber                 String              @map("phone_number")
+  email                       String
+  engineeringScope            String              @map("engineering_scope")
+  projectDetailsAndLocation   String              @map("project_details_and_location")
+  status                      InquiryStatus       @default(NEW)
+  assignedToUserId            String?             @map("assigned_to_user_id")
+  engineerNotes               String?             @map("engineer_notes")
+  attachmentsCount            Int                 @default(0) @map("attachments_count")
+  createdAt                   DateTime            @default(now()) @map("created_at")
+  updatedAt                   DateTime            @updatedAt @map("updated_at")
+}`}
+                    {activeDbTab === 'mysql' && `CREATE TABLE customer_inquiries (
+  id VARCHAR(36) PRIMARY KEY,
+  doc_ref_number VARCHAR(50) UNIQUE NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  company_name VARCHAR(200) NOT NULL,
+  phone_number VARCHAR(50) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  engineering_scope VARCHAR(100) NOT NULL,
+  project_details_and_location TEXT NOT NULL,
+  status ENUM('NEW', 'REVIEWING', 'ASSIGNED', 'QUOTED', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'NEW',
+  assigned_to_user_id VARCHAR(36),
+  engineer_notes TEXT,
+  attachments_count INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
+              <span className="text-slate-400">
+                ไฟล์ทั้งหมดจัดเก็บในโฟลเดอร์ <code className="text-cyan-300">/database</code> และ <code className="text-cyan-300">/prisma</code> ของโปรเจกต์
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsDbGuideOpen(false)}
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
+              >
+                เข้าใจแล้ว / ปิดหน้าต่าง
+              </button>
+            </div>
           </div>
         </div>
       )}
