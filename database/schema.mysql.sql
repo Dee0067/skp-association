@@ -24,13 +24,20 @@ INSERT INTO roles (id, name_th, name_en, description) VALUES
 ('admin_coordinator_manager', 'ผู้จัดการฝ่ายธุรการและประสานงาน', 'Admin & Coordination Manager', 'สิทธิ์การจัดการ (Manager): ดูข้อมูลทั้งหมด, บันทึกการติดต่อ, มอบหมายงาน, อัปเดตสถานะ, ส่งออกข้อมูล'),
 ('project_engineer', 'วิศวกรโครงการ', 'Project Engineer', 'สิทธิ์เทียบเท่าผู้จัดการ: ดูข้อมูลทั้งหมด, จัดการงานวิศวกรรม, บันทึกข้อคิดเห็นทางเทคนิค, อัปเดตสถานะ, ส่งออกข้อมูล');
 
--- 3. USERS TABLE (ตารางบุคลากรที่มีสิทธิ์เข้าถึง)
+-- 3. USERS TABLE (ตารางบุคลากรเฉพาะของบริษัท SKP Association เท่านั้น)
 CREATE TABLE users (
     id VARCHAR(36) PRIMARY KEY,
+    name_th VARCHAR(150) NOT NULL,
+    name_en VARCHAR(150) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
-    full_name VARCHAR(150) NOT NULL,
-    phone VARCHAR(50),
+    phone VARCHAR(50) NOT NULL,
     role_id VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL DEFAULT 'skp@admin2026',
+    is_first_login BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    otp_code VARCHAR(10),
+    otp_expires_at TIMESTAMP NULL,
+    otp_channel VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -39,11 +46,14 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_name_th ON users(name_th);
+CREATE INDEX idx_users_name_en ON users(name_en);
 
-INSERT INTO users (id, email, full_name, phone, role_id) VALUES
-(UUID(), 'supot.meskp@gmail.com', 'สุพจน์ เหมสถล (กรรมการผู้จัดการ)', '02-116-4125', 'managing_director'),
-(UUID(), 'admin@skpassociation.co.th', 'ผู้จัดการฝ่ายธุรการและประสานงาน', '02-116-4125', 'admin_coordinator_manager'),
-(UUID(), 'engineer@skpassociation.co.th', 'วิศวกรโครงการ', '02-116-4125', 'project_engineer');
+INSERT INTO users (id, name_th, name_en, email, phone, role_id, is_first_login, is_verified) VALUES
+(UUID(), 'สุพจน์ เหมสถล', 'Supot Hemsathol', 'supot.meskp@gmail.com', '093-695-6445', 'managing_director', TRUE, FALSE),
+(UUID(), 'วิไลวรรณ โกฆะรัตน์', 'Wilaiwan Kokharat', 'admin@skpassociation.co.th', '02-116-4125', 'admin_coordinator_manager', TRUE, FALSE),
+(UUID(), 'รังสฤทธิ์ สุหลง', 'Rangsarit Sulong', 'engineer.rangsarit@skpassociation.co.th', '081-456-7890', 'project_engineer', TRUE, FALSE),
+(UUID(), 'ประเสริฐ ลากะสงค์', 'Prasert Lakasong', 'engineer.prasert@skpassociation.co.th', '089-771-2233', 'project_engineer', TRUE, FALSE);
 
 -- 4. CUSTOMER INQUIRIES TABLE (ตารางจัดเก็บรายชื่อและข้อมูลลูกค้าที่ติดต่อมา)
 CREATE TABLE customer_inquiries (

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/system.test.mjs tests/translations.test.mjs tests/quotation.test.mjs tests/components.test.mjs tests/inquiries.test.mjs",
+    "test": "node --experimental-strip-types --test tests/system.test.mjs tests/translations.test.mjs tests/quotation.test.mjs tests/components.test.mjs tests/inquiries.test.mjs tests/auth.test.mjs",
     "test:all": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {

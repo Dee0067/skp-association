@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Phone, Menu, X, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { Phone, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { translations } from '@/translations';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -93,8 +94,17 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Desktop Actions: Quote Button & Language Switcher */}
+          {/* Desktop Actions: Admin, Quote Button & Language Switcher */}
           <div className="hidden md:flex items-center space-x-3">
+            <Link 
+              href="/admin" 
+              className="inline-flex items-center justify-center px-3.5 py-2 text-xs font-semibold tracking-wide text-slate-200 hover:text-white bg-skp-navy-card/90 hover:bg-skp-navy-light rounded-md border border-skp-navy-border hover:border-cyan-500/50 shadow-sm transition-all duration-200 group"
+              title={language === 'en' ? 'Staff & Admin Portal' : 'ระบบผู้ดูแลและบุคลากร SKP (Staff Portal)'}
+            >
+              <ShieldCheck className="w-4 h-4 mr-1.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span>{t.admin}</span>
+            </Link>
+
             <a 
               href="#contact" 
               className="relative inline-flex items-center justify-center px-4 py-2 text-sm font-medium tracking-wide text-white bg-skp-red hover:bg-skp-red-hover rounded-md shadow-lg shadow-skp-red/25 border border-skp-red-hover transition-all duration-200 group overflow-hidden"
@@ -161,10 +171,18 @@ export default function Navbar() {
               >
                 {t.contact}
               </a>
-              <div className="pt-2 border-t border-skp-navy-border">
+              <div className="pt-2 border-t border-skp-navy-border space-y-2">
+                <Link 
+                  href="/admin" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center py-2.5 px-4 bg-slate-900/90 border border-slate-700/80 text-cyan-300 hover:text-white rounded-md font-medium text-xs hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  <ShieldCheck className="w-4 h-4 mr-2 text-cyan-400" />
+                  {t.admin} ({language === 'en' ? 'Staff Portal' : 'ระบบเจ้าหน้าที่'})
+                </Link>
                 <a 
                   href="tel:0936956445"
-                  className="flex items-center justify-center py-2.5 px-4 mb-2 bg-skp-navy-light text-skp-cyan rounded-md font-mono text-xs hover:bg-skp-navy-card transition-colors"
+                  className="flex items-center justify-center py-2.5 px-4 bg-skp-navy-light text-skp-cyan rounded-md font-mono text-xs hover:bg-skp-navy-card transition-colors"
                 >
                   <Phone className="w-4 h-4 mr-2 text-skp-cyan" />
                   093-695-6445 ({t.managerContact})

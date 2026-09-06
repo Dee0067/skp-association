@@ -34,7 +34,14 @@ import {
   Copy,
   Check,
   Terminal,
-  Layers
+  Layers,
+  KeyRound,
+  ShieldAlert,
+  Smartphone,
+  Send,
+  LogOut,
+  User,
+  ExternalLink
 } from 'lucide-react';
 import { 
   CustomerInquiry, 
@@ -42,10 +49,36 @@ import {
   ROLES, 
   INQUIRY_STATUS_CONFIG, 
   InquiryStatus, 
-  getRolePermissions 
+  getRolePermissions,
+  CompanyUser
 } from '@/types/database';
 
 export default function AdminInquiriesPage() {
+  // Authentication & Session State
+  const [currentUser, setCurrentUser] = useState<Omit<CompanyUser, 'password' | 'otpCode'> | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // Login Form State
+  const [loginName, setLoginName] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // OTP Verification Modal State
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpPendingUser, setOtpPendingUser] = useState<Omit<CompanyUser, 'password' | 'otpCode'> | null>(null);
+  const [otpChannel, setOtpChannel] = useState<'email' | 'mobile'>('email');
+  const [otpStep, setOtpStep] = useState<'select' | 'input'>('select');
+  const [otpCodeInput, setOtpCodeInput] = useState('');
+  const [otpNewPassword, setOtpNewPassword] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpMaskedTarget, setOtpMaskedTarget] = useState('');
+  const [otpDemoCode, setOtpDemoCode] = useState('');
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
   const [currentRole, setCurrentRole] = useState<RoleType>('managing_director');
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +139,182 @@ export default function AdminInquiriesPage() {
     }
   }, [currentRole]);
 
+  // Restore session from localStorage on initial client mount
   useEffect(() => {
-    fetchInquiries();
-  }, [fetchInquiries]);
+    try {
+      const stored = localStorage.getItem('skp_admin_session');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.user && parsed?.token) {
+          setCurrentUser(parsed.user);
+          setAuthToken(parsed.token);
+          if (parsed.user.role) {
+            setCurrentRole(parsed.user.role);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load session:', e);
+    } finally {
+      setIsAuthChecking(false);
+    }
+  }, []);
+
+  // Handle Logout
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('skp_admin_session');
+    }
+    setCurrentUser(null);
+    setAuthToken(null);
+    setLoginPassword('');
+    setLoginError('');
+  };
+
+  // Handle Quick Fill credentials for testing
+  const handleQuickFill = (name: string, email: string) => {
+    setLoginName(name);
+    setLoginEmail(email);
+    setLoginPassword('skp@admin2026');
+    setLoginError('');
+  };
+
+  // Handle Login Submission
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: loginName.trim(),
+          email: loginEmail.trim(),
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        setLoginError(data.error || 'การเข้าสู่ระบบล้มเหลว กรุณาตรวจสอบข้อมูล');
+        return;
+      }
+
+      if (data.requiresOtp) {
+        // ต้องยืนยัน OTP สำหรับการเข้าใช้งานครั้งแรก
+        setOtpPendingUser(data.user);
+        setShowOtpModal(true);
+        setOtpStep('select');
+        setOtpError('');
+        setOtpCodeInput('');
+        return;
+      }
+
+      // เข้าสู่ระบบสำเร็จ
+      setCurrentUser(data.user);
+      setAuthToken(data.token);
+      if (data.user?.role) {
+        setCurrentRole(data.user.role);
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'skp_admin_session',
+          JSON.stringify({ user: data.user, token: data.token, loggedAt: new Date().toISOString() })
+        );
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  // Handle Request OTP
+  const handleRequestOtp = async (channel: 'email' | 'mobile') => {
+    if (!otpPendingUser) return;
+    setIsRequestingOtp(true);
+    setOtpError('');
+    try {
+      const res = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request',
+          userId: otpPendingUser.id,
+          channel,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setOtpChannel(channel);
+        setOtpMaskedTarget(data.maskedTarget || '');
+        setOtpDemoCode(data.otpForDemo || '');
+        setOtpStep('input');
+      } else {
+        setOtpError(data.error || 'ไม่สามารถส่งรหัส OTP ได้');
+      }
+    } catch (err: any) {
+      setOtpError(err.message || 'เกิดข้อผิดพลาดในการขอรหัส OTP');
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpPendingUser || !otpCodeInput.trim()) {
+      setOtpError('กรุณากรอกรหัส OTP 6 หลัก');
+      return;
+    }
+    setIsVerifyingOtp(true);
+    setOtpError('');
+    try {
+      const res = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify',
+          userId: otpPendingUser.id,
+          code: otpCodeInput.trim(),
+          newPassword: otpNewPassword.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+        setAuthToken(data.token);
+        if (data.user?.role) {
+          setCurrentRole(data.user.role);
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(
+            'skp_admin_session',
+            JSON.stringify({ user: data.user, token: data.token, loggedAt: new Date().toISOString() })
+          );
+        }
+        setShowOtpModal(false);
+        setOtpPendingUser(null);
+        setOtpCodeInput('');
+      } else {
+        setOtpError(data.error || 'รหัส OTP ไม่ถูกต้องหรือหมดอายุ');
+      }
+    } catch (err: any) {
+      setOtpError(err.message || 'เกิดข้อผิดพลาดในการยืนยัน OTP');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchInquiries();
+    }
+  }, [fetchInquiries, currentUser]);
 
   // Filtered inquiries
   const filteredInquiries = useMemo(() => {
@@ -307,6 +513,391 @@ export default function AdminInquiriesPage() {
     document.body.removeChild(link);
   };
 
+  // 1. Loading State during session check
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="flex items-center space-x-3 text-cyan-400 font-mono text-sm">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+          <span>กำลังตรวจสอบสิทธิ์การเข้าถึงระบบ SKP Association...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated State: Staff Login Screen & OTP Verification
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative selection:bg-skp-red selection:text-white">
+        {/* Ambient background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+          <div className="flex justify-center mb-4">
+            <div className="bg-white p-2 rounded-xl shadow-lg border border-slate-700/50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="SKP Association" className="h-12 w-auto object-contain" />
+            </div>
+          </div>
+          <h2 className="text-center text-xl sm:text-2xl font-bold tracking-tight text-white">
+            ระบบเข้าใช้งานเจ้าหน้าที่ (Staff Portal)
+          </h2>
+          <p className="mt-1 text-center text-xs text-slate-400">
+            บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด (SKP Association Co., Ltd.)
+          </p>
+
+          {/* Security Banner */}
+          <div className="mt-4 p-3 bg-slate-900/90 border border-slate-800 rounded-xl text-xs space-y-1">
+            <div className="flex items-center text-cyan-400 font-semibold space-x-1.5">
+              <ShieldCheck className="w-4 h-4" />
+              <span>ระบบความปลอดภัยฐานข้อมูลบุคลากร (Company Whitelist Only)</span>
+            </div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              • สงวนสิทธิ์เฉพาะเจ้าหน้าที่และบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น (คนนอกไม่สามารถเข้าใช้งานได้)<br />
+              • รองรับการกรอกชื่อ-นามสกุล ทั้ง<strong className="text-slate-200">ภาษาไทย</strong>และ<strong className="text-slate-200">ภาษาอังกฤษ</strong><br />
+              • เข้าสู่ระบบครั้งแรก บังคับยืนยันรหัสความปลอดภัย <strong className="text-cyan-300">OTP</strong> ทางอีเมล หรือ มือถือ
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
+          <div className="bg-slate-900/95 py-8 px-6 sm:px-8 shadow-2xl border border-slate-800 rounded-2xl backdrop-blur-xl">
+            {loginError && (
+              <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  ชื่อ - นามสกุล <span className="text-slate-500 text-[11px]">(ภาษาไทย หรือ ภาษาอังกฤษ)</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    value={loginName}
+                    onChange={(e) => setLoginName(e.target.value)}
+                    placeholder="เช่น สุพจน์ เหมสถล หรือ Supot Hemsathol"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  อีเมลองค์กร <span className="text-slate-500 text-[11px]">(Company Email)</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="เช่น supot.meskp@gmail.com"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  รหัสผ่าน <span className="text-slate-500 text-[11px]">(Password)</span>
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/20 focus:outline-none transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>กำลังตรวจสอบสิทธิ์...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>เข้าสู่ระบบเจ้าหน้าที่ (Sign In)</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Quick Test Accounts Presets */}
+            <div className="mt-6 pt-5 border-t border-slate-800">
+              <div className="text-[11px] font-mono text-slate-400 mb-2.5 flex items-center justify-between">
+                <span>⚡ เลือกผู้ใช้งานทดสอบ (One-Click Test):</span>
+                <span className="text-cyan-400 font-sans text-[10px]">รหัสผ่าน: skp@admin2026</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('สุพจน์ เหมสถล', 'supot.meskp@gmail.com')}
+                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-cyan-300">สุพจน์ เหมสถล (ไทย)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • กรรมการผู้จัดการ</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">MD</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('Supot Hemsathol', 'supot.meskp@gmail.com')}
+                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-cyan-300">Supot Hemsathol (English)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • Managing Director</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">MD</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('วิไลวรรณ โกฆะรัตน์', 'admin@skpassociation.co.th')}
+                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-blue-300">วิไลวรรณ โกฆะรัตน์</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">admin@skpassociation.co.th • ฝ่ายธุรการ</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Admin</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('รังสฤทธิ์ สุหลง', 'engineer.rangsarit@skpassociation.co.th')}
+                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-amber-300">รังสฤทธิ์ สุหลง (ไฟฟ้า)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">engineer.rangsarit@skpassociation.co.th • วิศวกรโครงการ</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Engineer</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('สมชาย คนนอกระบบ', 'somchai.outsider@gmail.com')}
+                  className="p-2 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 border border-rose-900/50 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-rose-300">ทดสอบคนภายนอก (Somchai Outside)</span>
+                    <span className="block text-[10px] text-rose-400/80 font-mono">somchai.outsider@gmail.com • นอกองค์กร</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">Block</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Link
+                href="/"
+                className="inline-flex items-center text-xs font-mono text-slate-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                กลับไปยังหน้าหลักเว็บไซต์ SKP Association
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* OTP Verification Modal */}
+        {showOtpModal && otpPendingUser && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">ยืนยันตัวตนด้วยรหัส OTP</h3>
+                    <p className="text-[11px] text-cyan-400 font-mono">การเข้าสู่ระบบครั้งแรก (First-Time Login)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                <div className="text-slate-300 font-medium">
+                  บัญชีผู้ใช้: <span className="text-white font-bold">{otpPendingUser.nameTh}</span> ({otpPendingUser.nameEn})
+                </div>
+                <div className="text-slate-400">
+                  ตำแหน่ง: <span className="text-cyan-400">{otpPendingUser.roleTitleTh}</span>
+                </div>
+              </div>
+
+              {otpError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              {otpStep === 'select' ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-300">
+                    กรุณาเลือกช่องทางที่ต้องการให้ระบบส่งรหัสยืนยันตัวตน 6 หลัก:
+                  </p>
+
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRequestOtp('email')}
+                      disabled={isRequestingOtp}
+                      className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-left transition-all flex items-center justify-between group disabled:opacity-50 cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white group-hover:text-cyan-300">ส่งรหัสผ่านทาง อีเมล (Email OTP)</div>
+                          <div className="text-[11px] text-slate-400 font-mono">{otpPendingUser.email}</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRequestOtp('mobile')}
+                      disabled={isRequestingOtp}
+                      className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-left transition-all flex items-center justify-between group disabled:opacity-50 cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white group-hover:text-emerald-300">ส่งรหัสผ่านทาง เบอร์มือถือ (SMS OTP)</div>
+                          <div className="text-[11px] text-slate-400 font-mono">{otpPendingUser.phone}</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  </div>
+
+                  {isRequestingOtp && (
+                    <div className="text-center text-xs text-cyan-400 flex items-center justify-center space-x-2 font-mono">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>กำลังสร้างและจัดส่งรหัสความปลอดภัย OTP...</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs space-y-1">
+                    <div className="text-cyan-300 font-medium">
+                      ส่งรหัส OTP เรียบร้อยแล้ว ไปยัง {otpChannel === 'email' ? 'อีเมล' : 'เบอร์มือถือ'}:
+                    </div>
+                    <div className="text-white font-mono text-sm font-bold">{otpMaskedTarget}</div>
+                    {otpDemoCode && (
+                      <div className="mt-2 pt-2 border-t border-cyan-800/40 text-[11px] text-cyan-200">
+                        🔑 <span className="font-semibold text-white">รหัสทดสอบ Sandbox:</span>{' '}
+                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono font-bold tracking-widest text-xs border border-cyan-500/30">
+                          {otpDemoCode}
+                        </span>
+                        <span className="text-[10px] text-cyan-400/80 block mt-1">(รหัสมีอายุ 5 นาที)</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 text-center">
+                      กรอกรหัส OTP 6 หลัก
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      autoFocus
+                      value={otpCodeInput}
+                      onChange={(e) => setOtpCodeInput(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••••"
+                      className="w-full text-center py-2.5 text-2xl font-mono tracking-widest font-bold bg-slate-950 border border-slate-800 rounded-xl text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      ตั้งรหัสผ่านใหม่ <span className="text-slate-500 text-[10px]">(ไม่บังคับ สำหรับเข้าใช้งานครั้งต่อไป)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={otpNewPassword}
+                      onChange={(e) => setOtpNewPassword(e.target.value)}
+                      placeholder="กำหนดรหัสผ่านใหม่ (ขั้นต่ำ 6 ตัวอักษร)"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isVerifyingOtp || otpCodeInput.length < 6}
+                      className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {isVerifyingOtp ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>กำลังตรวจสอบรหัส OTP...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>ยืนยันรหัส OTP และเปิดใช้งานบัญชี</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOtpStep('select')}
+                      className="w-full py-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      เปลี่ยนช่องทางรับรหัส หรือ ขอรหัสใหม่
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. Authenticated State: Main Admin Dashboard
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-skp-red selection:text-white pb-20 font-sans">
       {/* Top Header & Navigation */}
@@ -363,6 +954,30 @@ export default function AdminInquiriesPage() {
                 );
               })}
             </div>
+
+            {/* Logged-in Staff Info & Logout Button */}
+            {currentUser && (
+              <div className="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                <div className="text-right hidden sm:block">
+                  <div className="text-xs font-bold text-white flex items-center justify-end space-x-1">
+                    <User className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{currentUser.nameTh}</span>
+                  </div>
+                  <div className="text-[10px] text-cyan-400 font-mono">
+                    {currentUser.roleTitleTh}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-medium flex items-center space-x-1.5 transition-colors cursor-pointer"
+                  title="ออกจากระบบ (Sign Out)"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">ออกจากระบบ</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>

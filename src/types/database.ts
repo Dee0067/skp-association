@@ -160,3 +160,28 @@ export function getRolePermissions(role: RoleType): RBACPermissions {
       };
   }
 }
+
+export interface CompanyUser {
+  id: string;
+  nameTh: string;
+  nameEn: string;
+  email: string;
+  phone: string;
+  role: RoleType;
+  roleTitleTh: string;
+  roleTitleEn: string;
+  password?: string;
+  isFirstLogin: boolean;
+  isVerified: boolean;
+  otpCode?: string | null;
+  otpExpiresAt?: string | null;
+  otpChannel?: 'email' | 'mobile' | null;
+  createdAt: string;
+  lastLoginAt?: string | null;
+}
+
+export interface AuthSession {
+  user: Omit<CompanyUser, 'password' | 'otpCode'>;
+  token: string;
+  expiresAt: string;
+}
