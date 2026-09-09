@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
         message: `สร้างและส่งรหัส OTP ไปยัง ${channel === 'email' ? 'อีเมล' : 'เบอร์มือถือ'} (${otpResult.maskedTarget}) เรียบร้อยแล้ว`,
         channel: otpResult.channel,
         maskedTarget: otpResult.maskedTarget,
-        otpForDemo: otpResult.otpForDemo,
       });
     }
 

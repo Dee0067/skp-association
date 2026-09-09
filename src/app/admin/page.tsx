@@ -76,7 +76,6 @@ export default function AdminInquiriesPage() {
   const [otpConfirmPassword, setOtpConfirmPassword] = useState('');
   const [otpError, setOtpError] = useState('');
   const [otpMaskedTarget, setOtpMaskedTarget] = useState('');
-  const [otpDemoCode, setOtpDemoCode] = useState('');
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
@@ -87,7 +86,6 @@ export default function AdminInquiriesPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotUserId, setForgotUserId] = useState('');
   const [forgotMaskedEmail, setForgotMaskedEmail] = useState('');
-  const [forgotDemoCode, setForgotDemoCode] = useState('');
   const [forgotOtpCode, setForgotOtpCode] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
@@ -284,7 +282,6 @@ export default function AdminInquiriesPage() {
       if (data.success) {
         setOtpChannel(channel);
         setOtpMaskedTarget(data.maskedTarget || '');
-        setOtpDemoCode(data.otpForDemo || '');
         setOtpStep('input');
       } else {
         setOtpError(data.error || 'ไม่สามารถส่งรหัส OTP ได้');
@@ -390,7 +387,6 @@ export default function AdminInquiriesPage() {
       }
       setForgotUserId(data.userId);
       setForgotMaskedEmail(data.maskedEmail);
-      setForgotDemoCode(data.otpForDemo || '');
       setForgotStep('verify');
     } catch (err: any) {
       setForgotError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
@@ -908,15 +904,9 @@ export default function AdminInquiriesPage() {
                       ส่งรหัส OTP เรียบร้อยแล้ว ไปยัง {otpChannel === 'email' ? 'อีเมล' : 'เบอร์มือถือ'}:
                     </div>
                     <div className="text-white font-mono text-sm font-bold">{otpMaskedTarget}</div>
-                    {otpDemoCode && (
-                      <div className="mt-2 pt-2 border-t border-cyan-800/40 text-[11px] text-cyan-200">
-                        🔑 <span className="font-semibold text-white">รหัสทดสอบ Sandbox:</span>{' '}
-                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono font-bold tracking-widest text-xs border border-cyan-500/30">
-                          {otpDemoCode}
-                        </span>
-                        <span className="text-[10px] text-cyan-400/80 block mt-1">(รหัสมีอายุ 5 นาที)</span>
-                      </div>
-                    )}
+                    <p className="text-[11px] text-slate-300 pt-1 border-t border-cyan-800/40">
+                      กรุณาตรวจสอบรหัส OTP 6 หลักที่ระบบจัดส่งให้ และนำมากรอกด้านล่างนี้ (รหัสมีอายุ 5 นาที)
+                    </p>
                   </div>
 
                   <div>
@@ -1146,14 +1136,9 @@ export default function AdminInquiriesPage() {
                       ส่งรหัส OTP กู้คืนรหัสผ่านเรียบร้อยแล้ว ไปยังอีเมล:
                     </div>
                     <div className="text-white font-mono text-sm font-bold">{forgotMaskedEmail}</div>
-                    {forgotDemoCode && (
-                      <div className="mt-2 pt-2 border-t border-cyan-800/40 text-[11px] text-cyan-200">
-                        🔑 <span className="font-semibold text-white">รหัสทดสอบ Sandbox:</span>{' '}
-                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono font-bold tracking-widest text-xs border border-cyan-500/30">
-                          {forgotDemoCode}
-                        </span>
-                      </div>
-                    )}
+                    <p className="text-[11px] text-slate-300 pt-1 border-t border-cyan-800/40">
+                      กรุณาตรวจสอบรหัส OTP 6 หลักจากกล่องข้อความอีเมลของท่าน (รหัสมีอายุ 5 นาที)
+                    </p>
                   </div>
 
                   <div>

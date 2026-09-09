@@ -5,8 +5,11 @@
 
 export type RoleType = 
   | 'managing_director'          // กรรมการผู้จัดการ (MD)
-  | 'admin_coordinator_manager'  // ผู้จัดการฝ่ายธุรการและประสานงาน
-  | 'project_engineer';          // วิศวกรโครงการ
+  | 'admin_coordinator_manager'  // ผู้จัดการฝ่ายธุรการและประสานงาน (Administrator)
+  | 'project_engineer'           // วิศวกรโครงการ (Project Engineer)
+  | 'safety_officer'             // เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)
+  | 'site_foreman'               // หัวหน้าผู้ควบคุมงานสนาม (Foreman)
+  | 'cad_bim_draftman';          // พนักงานเขียนแบบวิศวกรรม (CAD/BIM Draftman)
 
 export interface RoleDefinition {
   id: RoleType;
@@ -37,6 +40,27 @@ export const ROLES: Record<RoleType, RoleDefinition> = {
     nameEn: 'Project Engineer',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
     description: 'สิทธิ์เทียบเท่าผู้จัดการ: ดูข้อมูลทั้งหมด, จัดการงานวิศวกรรม, บันทึกข้อคิดเห็นทางเทคนิค, อัปเดตสถานะ, ส่งออกข้อมูล',
+  },
+  safety_officer: {
+    id: 'safety_officer',
+    nameTh: 'เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)',
+    nameEn: 'Safety Officer (HSE)',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    description: 'สายงานกำกับความปลอดภัย: ตรวจประเมินความเสี่ยงและกำกับดูแลความปลอดภัย 100% ประจำโครงการ',
+  },
+  site_foreman: {
+    id: 'site_foreman',
+    nameTh: 'หัวหน้าผู้ควบคุมงานสนาม (Foreman)',
+    nameEn: 'Site Construction Foreman',
+    badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+    description: 'สายงานควบคุมงานสนาม: สั่งการและกำกับดูแลผู้รับเหมาช่วงและควบคุมงานติดตั้งหน้างาน',
+  },
+  cad_bim_draftman: {
+    id: 'cad_bim_draftman',
+    nameTh: 'พนักงานเขียนแบบวิศวกรรม (CAD/BIM)',
+    nameEn: 'Draftman & CAD Specialist',
+    badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+    description: 'สายงานออกแบบและเขียนแบบ: จัดทำแบบ Shop Drawing, As-Built Drawing และประสานแบบรวมระบบ (CSD)',
   },
 };
 
@@ -147,7 +171,11 @@ export function getRolePermissions(role: RoleType): RBACPermissions {
         canDelete: false,       // ลบไม่ได้ (เฉพาะ MD)
         canManageUsers: false,  // จัดการ User ไม่ได้ (เฉพาะ MD)
       };
+    case 'safety_officer':
+    case 'site_foreman':
+    case 'cad_bim_draftman':
     default:
+      // สิทธิ์เข้าถึงฐานข้อมูลรายชื่อลูกค้าสงวนเฉพาะ: กรรมการผู้จัดการ, ผู้จัดการฝ่ายธุรการและประสานงาน, และวิศวกรโครงการ
       return {
         canViewAll: false,
         canEdit: false,

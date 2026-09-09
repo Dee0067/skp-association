@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
         message: `ส่งรหัสยืนยันตัวตน OTP ไปยังอีเมล (${result.maskedEmail}) เรียบร้อยแล้ว`,
         userId: result.userId,
         maskedEmail: result.maskedEmail,
-        otpForDemo: result.otpForDemo,
       });
     }
 

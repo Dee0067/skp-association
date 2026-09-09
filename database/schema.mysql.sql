@@ -22,7 +22,10 @@ CREATE TABLE roles (
 INSERT INTO roles (id, name_th, name_en, description) VALUES
 ('managing_director', 'กรรมการผู้จัดการ', 'Managing Director', 'สิทธิ์สูงสุด (Superadmin): ดูข้อมูลทั้งหมด, แก้ไข, ลบ, จัดการผู้ใช้ และส่งออกรายงาน'),
 ('admin_coordinator_manager', 'ผู้จัดการฝ่ายธุรการและประสานงาน', 'Admin & Coordination Manager', 'สิทธิ์การจัดการ (Manager): ดูข้อมูลทั้งหมด, บันทึกการติดต่อ, มอบหมายงาน, อัปเดตสถานะ, ส่งออกข้อมูล'),
-('project_engineer', 'วิศวกรโครงการ', 'Project Engineer', 'สิทธิ์เทียบเท่าผู้จัดการ: ดูข้อมูลทั้งหมด, จัดการงานวิศวกรรม, บันทึกข้อคิดเห็นทางเทคนิค, อัปเดตสถานะ, ส่งออกข้อมูล');
+('project_engineer', 'วิศวกรโครงการ', 'Project Engineer', 'สิทธิ์เทียบเท่าผู้จัดการ: ดูข้อมูลทั้งหมด, จัดการงานวิศวกรรม, บันทึกข้อคิดเห็นทางเทคนิค, อัปเดตสถานะ, ส่งออกข้อมูล'),
+('safety_officer', 'เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)', 'Safety Officer (HSE)', 'สายงานกำกับความปลอดภัย: ตรวจประเมินความเสี่ยงและกำกับดูแลความปลอดภัย 100% ประจำโครงการ'),
+('site_foreman', 'หัวหน้าผู้ควบคุมงานสนาม (Foreman)', 'Site Construction Foreman', 'สายงานควบคุมงานสนาม: สั่งการและกำกับดูแลผู้รับเหมาช่วงและควบคุมงานติดตั้งหน้างาน'),
+('cad_bim_draftman', 'พนักงานเขียนแบบวิศวกรรม (CAD/BIM)', 'Draftman & CAD Specialist', 'สายงานออกแบบและเขียนแบบ: จัดทำแบบ Shop Drawing, As-Built Drawing และประสานแบบรวมระบบ (CSD)');
 
 -- 3. USERS TABLE (ตารางบุคลากรเฉพาะของบริษัท SKP Association เท่านั้น)
 CREATE TABLE users (
@@ -51,9 +54,11 @@ CREATE INDEX idx_users_name_en ON users(name_en);
 
 INSERT INTO users (id, name_th, name_en, email, phone, role_id, is_first_login, is_verified) VALUES
 (UUID(), 'คุณสุพจน์ มั่นสิทธิกุล', 'Mr. Supot Munsittikul', 'supot.meskp@gmail.com', '093-695-6445', 'managing_director', TRUE, FALSE),
-(UUID(), 'คุณวิไลวรรณ โกฆะรัตน์', 'Mrs. Wilaiwan Kokarat', 'vilaivan2518@gmail.com', '082-208-4541', 'admin_coordinator_manager', TRUE, FALSE),
+(UUID(), 'คุณกัณณปภัสส์ ช.', 'Ms. Kannapaphat C.', 'kannapaphat.skp@gmail.com', '090-415-5144', 'admin_coordinator_manager', TRUE, FALSE),
 (UUID(), 'คุณรังสฤทธิ์ สุหลง', 'Mr. Rangsarit Sulong', 'rangsarit.meskp@gmail.com', '064-630-4866', 'project_engineer', TRUE, FALSE),
-(UUID(), 'คุณประเสริฐ ลากะสงค์', 'Mr. Prasert Lakasong', 'prasertlakasong@gmail.com', '062-624-8171', 'project_engineer', TRUE, FALSE);
+(UUID(), 'คุณวิไลวรรณ โกฆะรัตน์', 'Mrs. Wilaiwan Kokarat', 'vilaivan2518@gmail.com', '082-208-4541', 'safety_officer', TRUE, FALSE),
+(UUID(), 'คุณประเสริฐ ลากะสงค์', 'Mr. Prasert Lakasong', 'prasertlakasong@gmail.com', '062-624-8171', 'site_foreman', TRUE, FALSE),
+(UUID(), 'คุณภาคภูมิ ภู่จ้อย', 'Mr. Phakphoom Phoojoi', 'phakphoom.meskp@gmail.com', '02-116-4125', 'cad_bim_draftman', TRUE, FALSE);
 
 -- 4. CUSTOMER INQUIRIES TABLE (ตารางจัดเก็บรายชื่อและข้อมูลลูกค้าที่ติดต่อมา)
 CREATE TABLE customer_inquiries (

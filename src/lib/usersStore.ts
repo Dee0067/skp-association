@@ -12,7 +12,7 @@ declare global {
   var __skpCompanyUsersStore: CompanyUser[] | undefined;
 }
 
-// ฐานข้อมูลบุคลากรของ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ตามผังโครงสร้างองค์กรจริง (Whitelisted Company Staff Only)
+// ฐานข้อมูลบุคลากรของ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ตามผังโครงสร้างองค์กรจริงหน้าเว็บหลัก (Whitelisted Company Staff Only)
 const initialCompanyPersonnel: CompanyUser[] = [
   {
     id: 'usr-skp-001',
@@ -35,15 +35,15 @@ const initialCompanyPersonnel: CompanyUser[] = [
   },
   {
     id: 'usr-skp-002',
-    nameTh: 'คุณวิไลวรรณ โกฆะรัตน์',
-    nameEn: 'Mrs. Wilaiwan Kokarat',
-    nameAliases: ['วิไลวรรณ โกฆะรัตน์', 'Wilaiwan Kokharat', 'Wilaiwan Kokarat', 'วิไลวรรณ', 'Wilaiwan'],
-    email: 'vilaivan2518@gmail.com', // อีเมลจริงตามผังองค์กร
-    emailAliases: ['admin@skpassociation.co.th'],
-    phone: '082-208 4541',
+    nameTh: 'คุณกัณณปภัสส์ ช.',
+    nameEn: 'Ms. Kannapaphat C.',
+    nameAliases: ['กัณณปภัสส์ ช.', 'กัณณปภัสส์', 'กัณปภัสส์', 'Kannapaphat C.', 'Kannapaphat', 'Ms. Kannapaphat C.'],
+    email: 'kannapaphat.skp@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['admin@skpassociation.co.th', 'kannapaphat@gmail.com', 'kannapaphat.c@gmail.com', 'skp.kannapaphat@gmail.com', 'info@skpassociation.co.th'],
+    phone: '090-415 5144',
     role: 'admin_coordinator_manager',
     roleTitleTh: 'ผู้จัดการฝ่ายธุรการและประสานงาน',
-    roleTitleEn: 'Admin & Coordination Manager',
+    roleTitleEn: 'Administrator (Admin & Coordination Manager)',
     password: '12345',
     isFirstLogin: true,
     isVerified: false,
@@ -59,11 +59,11 @@ const initialCompanyPersonnel: CompanyUser[] = [
     nameEn: 'Mr. Rangsarit Sulong',
     nameAliases: ['รังสฤทธิ์ สุหลง', 'Rangsarit Sulong', 'รังสฤทธิ์', 'Rangsarit'],
     email: 'rangsarit.meskp@gmail.com', // อีเมลจริงตามผังองค์กร
-    emailAliases: ['engineer.rangsarit@skpassociation.co.th'],
+    emailAliases: ['engineer.rangsarit@skpassociation.co.th', 'engineer@skpassociation.co.th'],
     phone: '064-630 4866',
     role: 'project_engineer',
-    roleTitleTh: 'วิศวกรโครงการ (ระบบไฟฟ้าและกำลัง)',
-    roleTitleEn: 'Project Engineer (Electrical)',
+    roleTitleTh: 'วิศวกรโครงการ',
+    roleTitleEn: 'Project Engineer',
     password: '12345',
     isFirstLogin: true,
     isVerified: false,
@@ -75,15 +75,55 @@ const initialCompanyPersonnel: CompanyUser[] = [
   },
   {
     id: 'usr-skp-004',
+    nameTh: 'คุณวิไลวรรณ โกฆะรัตน์',
+    nameEn: 'Mrs. Wilaiwan Kokarat',
+    nameAliases: ['วิไลวรรณ โกฆะรัตน์', 'Wilaiwan Kokharat', 'Wilaiwan Kokarat', 'วิไลวรรณ', 'Wilaiwan'],
+    email: 'vilaivan2518@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['safety@skpassociation.co.th', 'hse@skpassociation.co.th'],
+    phone: '082-208 4541',
+    role: 'safety_officer',
+    roleTitleTh: 'เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)',
+    roleTitleEn: 'Safety Officer (HSE Specialist)',
+    password: '12345',
+    isFirstLogin: true,
+    isVerified: false,
+    otpCode: null,
+    otpExpiresAt: null,
+    otpChannel: null,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    lastLoginAt: null,
+  },
+  {
+    id: 'usr-skp-005',
     nameTh: 'คุณประเสริฐ ลากะสงค์',
     nameEn: 'Mr. Prasert Lakasong',
     nameAliases: ['ประเสริฐ ลากะสงค์', 'Prasert Lakasong', 'ประเสริฐ', 'Prasert'],
     email: 'prasertlakasong@gmail.com', // อีเมลจริงตามผังองค์กร
-    emailAliases: ['engineer.prasert@skpassociation.co.th'],
+    emailAliases: ['foreman@skpassociation.co.th', 'prasert@skpassociation.co.th'],
     phone: '062-624 8171',
-    role: 'project_engineer',
-    roleTitleTh: 'วิศวกรโครงการ (ระบบเครื่องกลและสุขาภิบาล)',
-    roleTitleEn: 'Project Engineer (Mechanical & Plumbing)',
+    role: 'site_foreman',
+    roleTitleTh: 'หัวหน้าผู้ควบคุมงานสนาม (Foreman)',
+    roleTitleEn: 'Site Construction Foreman',
+    password: '12345',
+    isFirstLogin: true,
+    isVerified: false,
+    otpCode: null,
+    otpExpiresAt: null,
+    otpChannel: null,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    lastLoginAt: null,
+  },
+  {
+    id: 'usr-skp-006',
+    nameTh: 'คุณภาคภูมิ ภู่จ้อย',
+    nameEn: 'Mr. Phakphoom Phoojoi',
+    nameAliases: ['ภาคภูมิ ภู่จ้อย', 'ภาคภูมิ', 'Phakphoom Phoojoi', 'Phakphoom', 'Mr. Phakphoom Phoojoi'],
+    email: 'phakphoom.meskp@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['cad@skpassociation.co.th', 'phakphoom@gmail.com', 'phakphoom.phoojoi@gmail.com'],
+    phone: '02-116 4125',
+    role: 'cad_bim_draftman',
+    roleTitleTh: 'พนักงานเขียนแบบวิศวกรรม (CAD/BIM)',
+    roleTitleEn: 'Draftman & CAD Specialist',
     password: '12345',
     isFirstLogin: true,
     isVerified: false,
@@ -224,7 +264,6 @@ export async function generateAndSendOtp(
   success: boolean;
   channel: 'email' | 'mobile';
   maskedTarget: string;
-  otpForDemo: string;
   error?: string;
 }> {
   const store = getUsersStore();
@@ -235,7 +274,6 @@ export async function generateAndSendOtp(
       success: false,
       channel,
       maskedTarget: '',
-      otpForDemo: '',
       error: 'ไม่พบบัญชีผู้ใช้งานในระบบองค์กร',
     };
   }
@@ -253,25 +291,38 @@ export async function generateAndSendOtp(
     const parts = user.email.split('@');
     maskedTarget = `${parts[0].slice(0, 2)}***@${parts[1]}`;
 
-    // ส่งอีเมลจริงผ่าน SMTP หากมีการตั้งค่าไว้
+    // ส่งอีเมลจริงผ่าน SMTP หรือ Gmail Server
     try {
       const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
       const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+      const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+      const smtpPort = Number(process.env.SMTP_PORT) || 465;
+
       if (smtpUser && smtpPass) {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: { user: smtpUser, pass: smtpPass },
-        });
+        const isGmail = smtpHost.toLowerCase().includes('gmail') || smtpUser.toLowerCase().includes('@gmail.com');
+        const transporter = nodemailer.createTransport(
+          isGmail
+            ? {
+                service: 'gmail',
+                auth: { user: smtpUser, pass: smtpPass },
+              }
+            : {
+                host: smtpHost,
+                port: smtpPort,
+                secure: smtpPort === 465,
+                auth: { user: smtpUser, pass: smtpPass },
+              }
+        );
 
         await transporter.sendMail({
           from: `"ระบบความปลอดภัย SKP Association" <${smtpUser}>`,
           to: user.email,
-          subject: `[SKP Security] รหัสยืนยัน OTP สำหรับเข้าสู่ระบบครั้งแรก: ${otp}`,
+          subject: `[SKP Security] รหัสยืนยัน OTP สำหรับเข้าสู่ระบบ: ${otp}`,
           html: `
             <div style="font-family: sans-serif; padding: 24px; background: #0b132b; color: #ffffff; border-radius: 12px; max-width: 500px;">
               <h2 style="color: #38bdf8; margin: 0 0 12px 0;">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</h2>
               <p style="color: #cbd5e1; font-size: 14px;">เรียนคุณ <strong>${user.nameTh}</strong> (${user.nameEn})</p>
-              <p style="color: #cbd5e1; font-size: 14px;">รหัสยืนยันตัวตน (OTP) สำหรับการเข้าสู่ระบบครั้งแรกของคุณคือ:</p>
+              <p style="color: #cbd5e1; font-size: 14px;">รหัสยืนยันตัวตน (OTP) สำหรับการเข้าสู่ระบบของคุณคือ:</p>
               <div style="background: #1e293b; padding: 16px; border-radius: 8px; font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #00f0ff; text-align: center; border: 1px solid #38bdf8;">
                 ${otp}
               </div>
@@ -279,6 +330,8 @@ export async function generateAndSendOtp(
             </div>
           `,
         });
+      } else {
+        console.info(`[SKP Security OTP] Real OTP generated for ${user.email}. (Set SMTP_USER & SMTP_PASS in Vercel to dispatch through live SMTP server)`);
       }
     } catch (mailErr) {
       console.warn('Failed to send OTP email directly:', mailErr);
@@ -289,13 +342,56 @@ export async function generateAndSendOtp(
     maskedTarget = digits.length >= 9
       ? `${digits.slice(0, 3)}-***-${digits.slice(-4)}`
       : user.phone;
+
+    // Send SMS via Gateway if configured (e.g. ThaiBulkSMS or Twilio)
+    try {
+      const thaiBulkKey = process.env.THAIBULKSMS_API_KEY;
+      const thaiBulkSecret = process.env.THAIBULKSMS_API_SECRET;
+      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
+      const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
+
+      const cleanPhone = digits.startsWith('0') ? '66' + digits.slice(1) : digits;
+
+      if (thaiBulkKey && thaiBulkSecret) {
+        const basicAuth = Buffer.from(`${thaiBulkKey}:${thaiBulkSecret}`).toString('base64');
+        await fetch('https://api-v2.thaibulksms.com/sms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+          body: JSON.stringify({
+            msisdn: cleanPhone,
+            message: `[SKP Association] รหัสยืนยัน OTP คือ ${otp} (มีอายุ 5 นาที)`,
+          }),
+        });
+      } else if (twilioSid && twilioAuth && twilioFrom) {
+        const basicAuth = Buffer.from(`${twilioSid}:${twilioAuth}`).toString('base64');
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+          body: new URLSearchParams({
+            To: '+' + cleanPhone,
+            From: twilioFrom,
+            Body: `[SKP Security] Your OTP code is ${otp} (valid for 5 minutes).`,
+          }).toString(),
+        });
+      } else {
+        console.info(`[SKP Security SMS OTP] Real SMS OTP generated for ${user.phone}. (Set THAIBULKSMS_API_KEY or TWILIO credentials in Vercel to dispatch SMS)`);
+      }
+    } catch (smsErr) {
+      console.warn('Failed to send SMS OTP via Gateway:', smsErr);
+    }
   }
 
   return {
     success: true,
     channel,
     maskedTarget,
-    otpForDemo: otp, // ส่งโค้ดกลับไปแสดงบนหน้าจอด้วยเพื่อให้ทดสอบได้ทันที
   };
 }
 
@@ -319,17 +415,19 @@ export function verifyOtpAndActivate(
     return { success: false, error: 'ไม่พบบัญชีผู้ใช้งาน' };
   }
 
-  const cleanEntered = enteredOtp.trim();
+  const cleanEntered = (enteredOtp || '').trim();
+  if (!cleanEntered) {
+    return { success: false, error: 'กรุณากรอกรหัส OTP 6 หลัก' };
+  }
   const currentOtp = computeOtpForUser(user.id, 0);
   const prevOtp = computeOtpForUser(user.id, -1);
   const inMemoryOtp = user.otpCode?.trim();
 
-  // ตรวจสอบความถูกต้องของ OTP ทั้งแบบ time-windowed และ in-memory
+  // ตรวจสอบความถูกต้องของ OTP ทั้งแบบ time-windowed และ in-memory (ไม่มีรหัสทดสอบ)
   const isMatched =
     cleanEntered === currentOtp ||
     cleanEntered === prevOtp ||
-    (inMemoryOtp ? cleanEntered === inMemoryOtp : false) ||
-    cleanEntered === '123456';
+    (inMemoryOtp ? cleanEntered === inMemoryOtp : false);
 
   if (!isMatched) {
     return { success: false, error: 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบรหัส 6 หลักอีกครั้ง' };
@@ -379,7 +477,6 @@ export async function requestPasswordReset(
   isOutsider?: boolean;
   userId?: string;
   maskedEmail?: string;
-  otpForDemo?: string;
   error?: string;
 }> {
   if (!fullName?.trim() || !email?.trim()) {
@@ -408,11 +505,24 @@ export async function requestPasswordReset(
   try {
     const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+
     if (smtpUser && smtpPass) {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const isGmail = smtpHost.toLowerCase().includes('gmail') || smtpUser.toLowerCase().includes('@gmail.com');
+      const transporter = nodemailer.createTransport(
+        isGmail
+          ? {
+              service: 'gmail',
+              auth: { user: smtpUser, pass: smtpPass },
+            }
+          : {
+              host: smtpHost,
+              port: smtpPort,
+              secure: smtpPort === 465,
+              auth: { user: smtpUser, pass: smtpPass },
+            }
+      );
 
       await transporter.sendMail({
         from: `"ระบบความปลอดภัย SKP Association" <${smtpUser}>`,
@@ -430,6 +540,8 @@ export async function requestPasswordReset(
           </div>
         `,
       });
+    } else {
+      console.info(`[SKP Security Reset OTP] Real Reset OTP generated for ${user.email}. (Set SMTP_USER & SMTP_PASS in Vercel to dispatch through live SMTP server)`);
     }
   } catch (err) {
     console.warn('Failed to send reset password email:', err);
@@ -439,7 +551,6 @@ export async function requestPasswordReset(
     success: true,
     userId: user.id,
     maskedEmail,
-    otpForDemo: otp,
   };
 }
 
@@ -462,7 +573,10 @@ export function resetPasswordWithOtp(
     return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานในระบบ' };
   }
 
-  const cleanEntered = enteredOtp.trim();
+  const cleanEntered = (enteredOtp || '').trim();
+  if (!cleanEntered) {
+    return { success: false, error: 'กรุณากรอกรหัส OTP 6 หลัก' };
+  }
   const currentOtp = computeOtpForUser(user.id, 0);
   const prevOtp = computeOtpForUser(user.id, -1);
   const inMemoryOtp = user.otpCode?.trim();
@@ -470,8 +584,7 @@ export function resetPasswordWithOtp(
   const isMatched =
     cleanEntered === currentOtp ||
     cleanEntered === prevOtp ||
-    (inMemoryOtp ? cleanEntered === inMemoryOtp : false) ||
-    cleanEntered === '123456';
+    (inMemoryOtp ? cleanEntered === inMemoryOtp : false);
 
   if (!isMatched) {
     return { success: false, error: 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบรหัส 6 หลักจากอีเมลอีกครั้ง' };

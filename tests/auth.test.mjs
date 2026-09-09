@@ -9,60 +9,87 @@ import {
   verifyOtpAndActivate,
   requestPasswordReset,
   resetPasswordWithOtp,
-  getAllCompanyUsers 
+  getAllCompanyUsers,
+  computeOtpForUser
 } from '../src/lib/usersStore.ts';
 import { translations } from '../src/translations/index.ts';
 
 test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
-  await t.test('Whitelisted company personnel exist with 4 seeded members and real org chart emails', () => {
+  await t.test('Whitelisted company personnel exist with 6 seeded members and real org chart emails', () => {
     const users = getAllCompanyUsers();
-    assert.equal(users.length, 4, 'Should have 4 official company personnel seeded');
+    assert.equal(users.length, 6, 'Should have 6 official company personnel seeded');
 
+    // 1. MD: คุณสุพจน์ มั่นสิทธิกุล
     const md = users.find(u => u.role === 'managing_director');
     assert.ok(md, 'Managing Director must exist');
     assert.equal(md.email, 'supot.meskp@gmail.com', 'MD email must match org chart: supot.meskp@gmail.com');
     assert.equal(md.phone, '093-695 6445');
 
+    // 2. Admin Manager: คุณกัณณปภัสส์ ช.
     const adminMgr = users.find(u => u.role === 'admin_coordinator_manager');
-    assert.ok(adminMgr, 'Admin Manager must exist');
-    assert.equal(adminMgr.email, 'vilaivan2518@gmail.com', 'Admin Manager email must match org chart: vilaivan2518@gmail.com');
-    assert.equal(adminMgr.phone, '082-208 4541');
+    assert.ok(adminMgr, 'Admin Coordinator Manager must exist');
+    assert.equal(adminMgr.email, 'kannapaphat.skp@gmail.com', 'Admin Manager email must match org chart: kannapaphat.skp@gmail.com');
+    assert.equal(adminMgr.phone, '090-415 5144');
 
+    // 3. Project Engineer: คุณรังสฤทธิ์ สุหลง
     const rangsarit = users.find(u => u.email === 'rangsarit.meskp@gmail.com');
     assert.ok(rangsarit, 'Rangsarit must exist with org chart email: rangsarit.meskp@gmail.com');
+    assert.equal(rangsarit.role, 'project_engineer');
     assert.equal(rangsarit.phone, '064-630 4866');
 
+    // 4. Safety Officer: คุณวิไลวรรณ โกฆะรัตน์
+    const wilaiwan = users.find(u => u.email === 'vilaivan2518@gmail.com');
+    assert.ok(wilaiwan, 'Wilaiwan must exist with org chart email: vilaivan2518@gmail.com');
+    assert.equal(wilaiwan.role, 'safety_officer');
+    assert.equal(wilaiwan.phone, '082-208 4541');
+
+    // 5. Site Foreman: คุณประเสริฐ ลากะสงค์
     const prasert = users.find(u => u.email === 'prasertlakasong@gmail.com');
     assert.ok(prasert, 'Prasert must exist with org chart email: prasertlakasong@gmail.com');
+    assert.equal(prasert.role, 'site_foreman');
     assert.equal(prasert.phone, '062-624 8171');
+
+    // 6. CAD/BIM Draftman: คุณภาคภูมิ ภู่จ้อย
+    const phakphoom = users.find(u => u.email === 'phakphoom.meskp@gmail.com');
+    assert.ok(phakphoom, 'Phakphoom must exist with org chart email: phakphoom.meskp@gmail.com');
+    assert.equal(phakphoom.role, 'cad_bim_draftman');
+    assert.equal(phakphoom.phone, '02-116 4125');
   });
 
   await t.test('Full Name supports both Thai and English for login lookup with org chart emails', () => {
-    // 1. Thai name lookup with/without prefix
+    // 1. MD Thai and English
     const userTh1 = findCompanyUserByNameAndEmail('คุณสุพจน์ มั่นสิทธิกุล', 'supot.meskp@gmail.com');
-    assert.ok(userTh1, 'Must find user with prefix and org chart name');
+    assert.ok(userTh1, 'Must find MD with prefix and org chart name');
     const userTh2 = findCompanyUserByNameAndEmail('สุพจน์ เหมสถล', 'supot.meskp@gmail.com');
-    assert.ok(userTh2, 'Must find user with alias name เหมสถล');
-    const userTh3 = findCompanyUserByNameAndEmail('สุพจน์ เหมสาถล', 'supot.meskp@gmail.com');
-    assert.ok(userTh3, 'Must find user with alias name เหมสาถล');
-
-    // 2. English name lookup
+    assert.ok(userTh2, 'Must find MD with alias name เหมสถล');
     const userEn = findCompanyUserByNameAndEmail('Mr. Supot Munsittikul', 'supot.meskp@gmail.com');
-    assert.ok(userEn, 'Must find user with English full name');
+    assert.ok(userEn, 'Must find MD with English full name');
 
-    // 3. Admin Manager with org chart email vilaivan2518@gmail.com
-    const adminEn = findCompanyUserByNameAndEmail('Wilaiwan Kokarat', 'vilaivan2518@gmail.com');
-    assert.ok(adminEn, 'Must find Admin Manager with real email vilaivan2518@gmail.com');
-    const adminTh = findCompanyUserByNameAndEmail('วิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com');
+    // 2. Admin Manager (Kannapaphat) with org chart email kannapaphat.skp@gmail.com
+    const adminEn = findCompanyUserByNameAndEmail('Kannapaphat C.', 'kannapaphat.skp@gmail.com');
+    assert.ok(adminEn, 'Must find Admin Manager with English name');
+    const adminTh = findCompanyUserByNameAndEmail('กัณณปภัสส์ ช.', 'kannapaphat.skp@gmail.com');
     assert.ok(adminTh, 'Must find Admin Manager with Thai name');
 
-    // 4. Project Engineer (Rangsarit) with org chart email rangsarit.meskp@gmail.com
+    // 3. Project Engineer (Rangsarit) with org chart email rangsarit.meskp@gmail.com
     const engTh = findCompanyUserByNameAndEmail('คุณรังสฤทธิ์ สุหลง', 'rangsarit.meskp@gmail.com');
     assert.ok(engTh, 'Must find Project Engineer with real email rangsarit.meskp@gmail.com');
+    const engEn = findCompanyUserByNameAndEmail('Mr. Rangsarit Sulong', 'rangsarit.meskp@gmail.com');
+    assert.ok(engEn, 'Must find Project Engineer with English name');
 
-    // 5. Project Engineer / Foreman (Prasert) with org chart email prasertlakasong@gmail.com
+    // 4. Safety Officer (Wilaiwan) with org chart email vilaivan2518@gmail.com
+    const safetyTh = findCompanyUserByNameAndEmail('วิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com');
+    assert.ok(safetyTh, 'Must find Safety Officer with real email vilaivan2518@gmail.com');
+    const safetyEn = findCompanyUserByNameAndEmail('Mrs. Wilaiwan Kokarat', 'vilaivan2518@gmail.com');
+    assert.ok(safetyEn, 'Must find Safety Officer with English name');
+
+    // 5. Site Foreman (Prasert) with org chart email prasertlakasong@gmail.com
     const foremanTh = findCompanyUserByNameAndEmail('ประเสริฐ ลากะสงค์', 'prasertlakasong@gmail.com');
-    assert.ok(foremanTh, 'Must find Prasert with real email prasertlakasong@gmail.com');
+    assert.ok(foremanTh, 'Must find Site Foreman with real email prasertlakasong@gmail.com');
+
+    // 6. CAD/BIM Draftman (Phakphoom) with org chart email phakphoom.meskp@gmail.com
+    const cadTh = findCompanyUserByNameAndEmail('ภาคภูมิ ภู่จ้อย', 'phakphoom.meskp@gmail.com');
+    assert.ok(cadTh, 'Must find CAD Draftman with real email phakphoom.meskp@gmail.com');
   });
 
   await t.test('Outsiders (non-whitelisted users) are strictly blocked from login and flagged', () => {
@@ -99,63 +126,74 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
 
     const userId = firstLogin.user.id;
 
-    // 2. Request OTP via Email
+    // 2. Request OTP via Email - NO demo OTP exposed
     const otpEmailResult = await generateAndSendOtp(userId, 'email');
     assert.equal(otpEmailResult.success, true);
-    const currentOtp = otpEmailResult.otpForDemo;
+    assert.equal(otpEmailResult.otpForDemo, undefined, 'Must NEVER return demo OTP in result');
 
-    // 3. Verify OTP without new password FAILS (strictly mandatory!)
+    // 3. Compute the legitimate cryptographic OTP for the user
+    const currentOtp = computeOtpForUser(userId, 0);
+
+    // 4. Test code bypass '123456' MUST strictly FAIL
+    const testCodeAttempt = verifyOtpAndActivate(userId, '123456', 'Supot@Secret2026');
+    assert.equal(testCodeAttempt.success, false, 'Universal test bypass 123456 must be rejected');
+
+    // 5. Verify OTP without new password FAILS (strictly mandatory!)
     const failNoNewPassword = verifyOtpAndActivate(userId, currentOtp);
     assert.equal(failNoNewPassword.success, false);
     assert.ok(failNoNewPassword.error.includes('กรุณาตั้งรหัสผ่านใหม่'));
 
-    // 4. Verify OTP with new password as '12345' FAILS (cannot keep default password)
+    // 6. Verify OTP with new password as '12345' FAILS (cannot keep default password)
     const failKeepDefault = verifyOtpAndActivate(userId, currentOtp, '12345');
     assert.equal(failKeepDefault.success, false);
     assert.ok(failKeepDefault.error.includes('ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345'));
 
-    // 5. Verify OTP with valid new password SUCCEEDS
+    // 7. Verify OTP with valid new password SUCCEEDS
     const successVerify = verifyOtpAndActivate(userId, currentOtp, 'Supot@Secret2026');
     assert.equal(successVerify.success, true);
     assert.ok(successVerify.token, 'Must return auth token upon activation');
 
-    // 6. Next login with old default 12345 now FAILS
+    // 8. Next login with old default 12345 now FAILS
     const tryOldPassword = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', '12345');
     assert.equal(tryOldPassword.success, false);
 
-    // 7. Next login with new password SUCCEEDS and still enforces OTP
+    // 9. Next login with new password SUCCEEDS and still enforces OTP
     const subsequentLogin = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'Supot@Secret2026');
     assert.equal(subsequentLogin.success, true);
     assert.equal(subsequentLogin.requiresOtp, true);
     assert.equal(subsequentLogin.isFirstLogin, false, 'Should no longer be marked as first login');
   });
 
-  await t.test('Forgot Password flow via email OTP works seamlessly', async () => {
+  await t.test('Forgot Password flow via email OTP works seamlessly with no test code leaks', async () => {
     // 1. Outsider request password reset fails
     const outsiderForgot = await requestPasswordReset('สมชาย คนนอก', 'outsider@gmail.com');
     assert.equal(outsiderForgot.success, false);
     assert.equal(outsiderForgot.isOutsider, true);
 
-    // 2. Official staff request password reset succeeds and sends OTP
-    const staffForgot = await requestPasswordReset('คุณวิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com');
+    // 2. Official staff request password reset succeeds and sends OTP (no demo code leaked)
+    const staffForgot = await requestPasswordReset('คุณกัณณปภัสส์ ช.', 'kannapaphat.skp@gmail.com');
     assert.equal(staffForgot.success, true);
     assert.ok(staffForgot.userId);
     assert.ok(staffForgot.maskedEmail.includes('@gmail.com'));
-    assert.equal(staffForgot.otpForDemo.length, 6);
+    assert.equal(staffForgot.otpForDemo, undefined, 'Must NEVER return demo OTP in forgot password result');
 
-    const resetOtp = staffForgot.otpForDemo;
+    const resetOtp = computeOtpForUser(staffForgot.userId, 0);
 
-    // 3. Reset with wrong OTP fails
-    const failResetOtp = resetPasswordWithOtp(staffForgot.userId, '000000', 'newPasswordWilaiwan2026');
+    // 3. Test code bypass '123456' MUST strictly FAIL
+    const failBypass = resetPasswordWithOtp(staffForgot.userId, '123456', 'Kannapaphat#New2026');
+    assert.equal(failBypass.success, false, 'Universal test bypass 123456 must be rejected in reset flow');
+
+    // 4. Reset with wrong OTP fails
+    const failResetOtp = resetPasswordWithOtp(staffForgot.userId, '000000', 'newPasswordKannapaphat2026');
     assert.equal(failResetOtp.success, false);
     assert.ok(failResetOtp.error.includes('รหัส OTP ไม่ถูกต้อง'));
 
-    // 4. Reset with valid OTP succeeds
-    const successReset = resetPasswordWithOtp(staffForgot.userId, resetOtp, 'Wilaiwan#New2026');
+    // 5. Reset with valid OTP succeeds
+    const successReset = resetPasswordWithOtp(staffForgot.userId, resetOtp, 'Kannapaphat#New2026');
     assert.equal(successReset.success, true);
 
-    // 5. Login with newly reset password succeeds
-    const loginAfterReset = loginStaff('วิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com', 'Wilaiwan#New2026');
+    // 6. Login with newly reset password succeeds
+    const loginAfterReset = loginStaff('กัณณปภัสส์ ช.', 'kannapaphat.skp@gmail.com', 'Kannapaphat#New2026');
     assert.equal(loginAfterReset.success, true);
     assert.equal(loginAfterReset.requiresOtp, true);
   });

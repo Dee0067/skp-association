@@ -16,6 +16,9 @@ enum RoleType {
   managing_director           // กรรมการผู้จัดการ (Full Access / Superadmin)
   admin_coordinator_manager   // ผู้จัดการฝ่ายธุรการและประสานงาน (Manager)
   project_engineer            // วิศวกรโครงการ (Operational - สิทธิ์เท่ากับผู้จัดการทั้งหมด)
+  safety_officer              // เจ้าหน้าที่ความปลอดภัยวิชาชีพ (จป.วิชาชีพ)
+  site_foreman                // หัวหน้าผู้ควบคุมงานสนาม (Foreman)
+  cad_bim_draftman            // พนักงานเขียนแบบวิศวกรรม (CAD/BIM)
 }
 
 enum InquiryStatus {
