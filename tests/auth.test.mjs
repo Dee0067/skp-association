@@ -12,43 +12,53 @@ import {
 import { translations } from '../src/translations/index.ts';
 
 test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
-  await t.test('Whitelisted company personnel exist with 4 seeded members', () => {
+  await t.test('Whitelisted company personnel exist with 4 seeded members and real org chart emails', () => {
     const users = getAllCompanyUsers();
     assert.equal(users.length, 4, 'Should have 4 official company personnel seeded');
 
     const md = users.find(u => u.role === 'managing_director');
     assert.ok(md, 'Managing Director must exist');
-    assert.equal(md.email, 'supot.meskp@gmail.com');
-    assert.equal(md.nameTh, 'สุพจน์ เหมสถล');
-    assert.equal(md.nameEn, 'Supot Hemsathol');
+    assert.equal(md.email, 'supot.meskp@gmail.com', 'MD email must match org chart: supot.meskp@gmail.com');
+    assert.equal(md.phone, '093-695 6445');
 
     const adminMgr = users.find(u => u.role === 'admin_coordinator_manager');
     assert.ok(adminMgr, 'Admin Manager must exist');
-    assert.equal(adminMgr.nameTh, 'วิไลวรรณ โกฆะรัตน์');
-    assert.equal(adminMgr.nameEn, 'Wilaiwan Kokharat');
+    assert.equal(adminMgr.email, 'vilaivan2518@gmail.com', 'Admin Manager email must match org chart: vilaivan2518@gmail.com');
+    assert.equal(adminMgr.phone, '082-208 4541');
 
-    const engineers = users.filter(u => u.role === 'project_engineer');
-    assert.equal(engineers.length, 2, 'Should have 2 Project Engineers');
+    const rangsarit = users.find(u => u.email === 'rangsarit.meskp@gmail.com');
+    assert.ok(rangsarit, 'Rangsarit must exist with org chart email: rangsarit.meskp@gmail.com');
+    assert.equal(rangsarit.phone, '064-630 4866');
+
+    const prasert = users.find(u => u.email === 'prasertlakasong@gmail.com');
+    assert.ok(prasert, 'Prasert must exist with org chart email: prasertlakasong@gmail.com');
+    assert.equal(prasert.phone, '062-624 8171');
   });
 
-  await t.test('Full Name supports both Thai and English for login lookup', () => {
-    // 1. Thai name lookup
-    const userTh = findCompanyUserByNameAndEmail('สุพจน์ เหมสถล', 'supot.meskp@gmail.com');
-    assert.ok(userTh, 'Must find user with Thai full name');
-    assert.equal(userTh.nameTh, 'สุพจน์ เหมสถล');
+  await t.test('Full Name supports both Thai and English for login lookup with org chart emails', () => {
+    // 1. Thai name lookup with/without prefix
+    const userTh1 = findCompanyUserByNameAndEmail('คุณสุพจน์ มั่นสิทธิกุล', 'supot.meskp@gmail.com');
+    assert.ok(userTh1, 'Must find user with prefix and org chart name');
+    const userTh2 = findCompanyUserByNameAndEmail('สุพจน์ เหมสถล', 'supot.meskp@gmail.com');
+    assert.ok(userTh2, 'Must find user with alias name');
 
     // 2. English name lookup
-    const userEn = findCompanyUserByNameAndEmail('Supot Hemsathol', 'supot.meskp@gmail.com');
+    const userEn = findCompanyUserByNameAndEmail('Mr. Supot Munsittikul', 'supot.meskp@gmail.com');
     assert.ok(userEn, 'Must find user with English full name');
-    assert.equal(userEn.nameEn, 'Supot Hemsathol');
 
-    // 3. Admin Manager in English
-    const adminEn = findCompanyUserByNameAndEmail('Wilaiwan Kokharat', 'admin@skpassociation.co.th');
-    assert.ok(adminEn, 'Must find Admin Manager with English full name');
+    // 3. Admin Manager with org chart email vilaivan2518@gmail.com
+    const adminEn = findCompanyUserByNameAndEmail('Wilaiwan Kokarat', 'vilaivan2518@gmail.com');
+    assert.ok(adminEn, 'Must find Admin Manager with real email vilaivan2518@gmail.com');
+    const adminTh = findCompanyUserByNameAndEmail('วิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com');
+    assert.ok(adminTh, 'Must find Admin Manager with Thai name');
 
-    // 4. Project Engineer in Thai
-    const engTh = findCompanyUserByNameAndEmail('รังสฤทธิ์ สุหลง', 'engineer.rangsarit@skpassociation.co.th');
-    assert.ok(engTh, 'Must find Project Engineer with Thai full name');
+    // 4. Project Engineer (Rangsarit) with org chart email rangsarit.meskp@gmail.com
+    const engTh = findCompanyUserByNameAndEmail('คุณรังสฤทธิ์ สุหลง', 'rangsarit.meskp@gmail.com');
+    assert.ok(engTh, 'Must find Project Engineer with real email rangsarit.meskp@gmail.com');
+
+    // 5. Project Engineer / Foreman (Prasert) with org chart email prasertlakasong@gmail.com
+    const foremanTh = findCompanyUserByNameAndEmail('ประเสริฐ ลากะสงค์', 'prasertlakasong@gmail.com');
+    assert.ok(foremanTh, 'Must find Prasert with real email prasertlakasong@gmail.com');
   });
 
   await t.test('Outsiders (non-whitelisted users) are strictly blocked from login', () => {

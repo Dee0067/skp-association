@@ -11,14 +11,15 @@ declare global {
   var __skpCompanyUsersStore: CompanyUser[] | undefined;
 }
 
-// ฐานข้อมูลบุคลากรของ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด (Whitelisted Company Staff Only)
+// ฐานข้อมูลบุคลากรของ บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด ตามผังโครงสร้างองค์กรจริง (Whitelisted Company Staff Only)
 const initialCompanyPersonnel: CompanyUser[] = [
   {
     id: 'usr-skp-001',
-    nameTh: 'สุพจน์ เหมสถล',
-    nameEn: 'Supot Hemsathol',
-    email: 'supot.meskp@gmail.com',
-    phone: '093-695-6445',
+    nameTh: 'คุณสุพจน์ มั่นสิทธิกุล',
+    nameEn: 'Mr. Supot Munsittikul',
+    nameAliases: ['สุพจน์ เหมสถล', 'สุพจน์ มั่นสิทธิกุล', 'Supot Hemsathol', 'Supot Munsittikul', 'สุพจน์', 'Supot'],
+    email: 'supot.meskp@gmail.com', // อีเมลจริงตามผังองค์กร
+    phone: '093-695 6445',
     role: 'managing_director',
     roleTitleTh: 'กรรมการผู้จัดการ',
     roleTitleEn: 'Managing Director',
@@ -33,10 +34,12 @@ const initialCompanyPersonnel: CompanyUser[] = [
   },
   {
     id: 'usr-skp-002',
-    nameTh: 'วิไลวรรณ โกฆะรัตน์',
-    nameEn: 'Wilaiwan Kokharat',
-    email: 'admin@skpassociation.co.th',
-    phone: '02-116-4125',
+    nameTh: 'คุณวิไลวรรณ โกฆะรัตน์',
+    nameEn: 'Mrs. Wilaiwan Kokarat',
+    nameAliases: ['วิไลวรรณ โกฆะรัตน์', 'Wilaiwan Kokharat', 'Wilaiwan Kokarat', 'วิไลวรรณ', 'Wilaiwan'],
+    email: 'vilaivan2518@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['admin@skpassociation.co.th'],
+    phone: '082-208 4541',
     role: 'admin_coordinator_manager',
     roleTitleTh: 'ผู้จัดการฝ่ายธุรการและประสานงาน',
     roleTitleEn: 'Admin & Coordination Manager',
@@ -51,10 +54,12 @@ const initialCompanyPersonnel: CompanyUser[] = [
   },
   {
     id: 'usr-skp-003',
-    nameTh: 'รังสฤทธิ์ สุหลง',
-    nameEn: 'Rangsarit Sulong',
-    email: 'engineer.rangsarit@skpassociation.co.th',
-    phone: '081-456-7890',
+    nameTh: 'คุณรังสฤทธิ์ สุหลง',
+    nameEn: 'Mr. Rangsarit Sulong',
+    nameAliases: ['รังสฤทธิ์ สุหลง', 'Rangsarit Sulong', 'รังสฤทธิ์', 'Rangsarit'],
+    email: 'rangsarit.meskp@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['engineer.rangsarit@skpassociation.co.th'],
+    phone: '064-630 4866',
     role: 'project_engineer',
     roleTitleTh: 'วิศวกรโครงการ (ระบบไฟฟ้าและกำลัง)',
     roleTitleEn: 'Project Engineer (Electrical)',
@@ -69,10 +74,12 @@ const initialCompanyPersonnel: CompanyUser[] = [
   },
   {
     id: 'usr-skp-004',
-    nameTh: 'ประเสริฐ ลากะสงค์',
-    nameEn: 'Prasert Lakasong',
-    email: 'engineer.prasert@skpassociation.co.th',
-    phone: '089-771-2233',
+    nameTh: 'คุณประเสริฐ ลากะสงค์',
+    nameEn: 'Mr. Prasert Lakasong',
+    nameAliases: ['ประเสริฐ ลากะสงค์', 'Prasert Lakasong', 'ประเสริฐ', 'Prasert'],
+    email: 'prasertlakasong@gmail.com', // อีเมลจริงตามผังองค์กร
+    emailAliases: ['engineer.prasert@skpassociation.co.th'],
+    phone: '062-624 8171',
     role: 'project_engineer',
     roleTitleTh: 'วิศวกรโครงการ (ระบบเครื่องกลและสุขาภิบาล)',
     roleTitleEn: 'Project Engineer (Mechanical & Plumbing)',
@@ -95,12 +102,19 @@ function getUsersStore(): CompanyUser[] {
 }
 
 function normalize(text: string): string {
-  return text ? text.toLowerCase().replace(/\s+/g, ' ').trim() : '';
+  return text
+    ? text
+        .toLowerCase()
+        .replace(/^(คุณ|นาย|นาง|นางสาว|mr\.|mrs\.|ms\.)\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+    : '';
 }
 
 /**
  * ค้นหาผู้ใช้งานเฉพาะบุคลากรบริษัท (Company-Only Whitelist)
  * รองรับการค้นหาชื่อ-นามสกุล ทั้งภาษาไทยและภาษาอังกฤษ
+ * ใช้อีเมลจริงของผู้ใช้งานตามผังโครงสร้างองค์กรที่มีอยู่
  */
 export function findCompanyUserByNameAndEmail(fullName: string, email: string): CompanyUser | undefined {
   const normName = normalize(fullName);
@@ -108,18 +122,24 @@ export function findCompanyUserByNameAndEmail(fullName: string, email: string): 
   const store = getUsersStore();
 
   return store.find((user) => {
-    const matchEmail = normalize(user.email) === normEmail;
+    // 1. ตรวจสอบอีเมล (ตรงกับอีเมลตามผังองค์กร หรืออีเมลที่รองรับ)
+    const userEmails = [user.email, ...(user.emailAliases || [])].map(normalize);
+    const matchEmail = userEmails.includes(normEmail);
     if (!matchEmail) return false;
 
-    // ตรวจสอบชื่อ-นามสกุล ภาษาไทย
-    const matchTh = normalize(user.nameTh) === normName ||
-      normalize(user.nameTh).replace(/\s/g, '') === normName.replace(/\s/g, '');
+    // 2. ตรวจสอบชื่อ-นามสกุล ทั้งไทยและอังกฤษ
+    const candidateNames = [
+      user.nameTh,
+      user.nameEn,
+      ...(user.nameAliases || [])
+    ].map(normalize);
 
-    // ตรวจสอบชื่อ-นามสกุล ภาษาอังกฤษ
-    const matchEn = normalize(user.nameEn) === normName ||
-      normalize(user.nameEn).replace(/\s/g, '') === normName.replace(/\s/g, '');
+    const matchName = candidateNames.some((n) => {
+      if (!n) return false;
+      return n === normName || n.replace(/\s/g, '') === normName.replace(/\s/g, '');
+    });
 
-    return matchTh || matchEn;
+    return matchName;
   });
 }
 

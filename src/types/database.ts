@@ -165,7 +165,9 @@ export interface CompanyUser {
   id: string;
   nameTh: string;
   nameEn: string;
+  nameAliases?: string[];
   email: string;
+  emailAliases?: string[];
   phone: string;
   role: RoleType;
   roleTitleTh: string;

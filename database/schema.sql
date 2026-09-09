@@ -53,12 +53,12 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_name_th ON users(name_th);
 CREATE INDEX idx_users_name_en ON users(name_en);
 
--- SEED INITIAL COMPANY PERSONNEL (บุคลากรภายในบริษัทเท่านั้น คนนอกไม่มีสิทธิ์)
+-- SEED INITIAL COMPANY PERSONNEL (บุคลากรภายในบริษัทตามผังองค์กรจริง คนนอกไม่มีสิทธิ์)
 INSERT INTO users (name_th, name_en, email, phone, role_id, is_first_login, is_verified) VALUES
-('สุพจน์ เหมสถล', 'Supot Hemsathol', 'supot.meskp@gmail.com', '093-695-6445', 'managing_director', TRUE, FALSE),
-('วิไลวรรณ โกฆะรัตน์', 'Wilaiwan Kokharat', 'admin@skpassociation.co.th', '02-116-4125', 'admin_coordinator_manager', TRUE, FALSE),
-('รังสฤทธิ์ สุหลง', 'Rangsarit Sulong', 'engineer.rangsarit@skpassociation.co.th', '081-456-7890', 'project_engineer', TRUE, FALSE),
-('ประเสริฐ ลากะสงค์', 'Prasert Lakasong', 'engineer.prasert@skpassociation.co.th', '089-771-2233', 'project_engineer', TRUE, FALSE);
+('คุณสุพจน์ มั่นสิทธิกุล', 'Mr. Supot Munsittikul', 'supot.meskp@gmail.com', '093-695-6445', 'managing_director', TRUE, FALSE),
+('คุณวิไลวรรณ โกฆะรัตน์', 'Mrs. Wilaiwan Kokarat', 'vilaivan2518@gmail.com', '082-208-4541', 'admin_coordinator_manager', TRUE, FALSE),
+('คุณรังสฤทธิ์ สุหลง', 'Mr. Rangsarit Sulong', 'rangsarit.meskp@gmail.com', '064-630-4866', 'project_engineer', TRUE, FALSE),
+('คุณประเสริฐ ลากะสงค์', 'Mr. Prasert Lakasong', 'prasertlakasong@gmail.com', '062-624-8171', 'project_engineer', TRUE, FALSE);
 
 -- 5. CUSTOMER INQUIRIES TABLE (ตารางจัดเก็บรายชื่อและข้อมูลลูกค้าที่ติดต่อมา)
 CREATE TABLE customer_inquiries (

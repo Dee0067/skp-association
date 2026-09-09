@@ -557,6 +557,7 @@ export default function AdminInquiriesPage() {
             </div>
             <p className="text-slate-400 text-[11px] leading-relaxed">
               • สงวนสิทธิ์เฉพาะเจ้าหน้าที่และบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น (คนนอกไม่สามารถเข้าใช้งานได้)<br />
+              • ใช้อีเมลจริงของผู้ใช้งานตามผังโครงสร้างองค์กร (เช่น <span className="text-cyan-300 font-mono">@gmail.com</span>)<br />
               • รองรับการกรอกชื่อ-นามสกุล ทั้ง<strong className="text-slate-200">ภาษาไทย</strong>และ<strong className="text-slate-200">ภาษาอังกฤษ</strong><br />
               • เข้าสู่ระบบครั้งแรก บังคับยืนยันรหัสความปลอดภัย <strong className="text-cyan-300">OTP</strong> ทางอีเมล หรือ มือถือ
             </p>
@@ -584,7 +585,7 @@ export default function AdminInquiriesPage() {
                     required
                     value={loginName}
                     onChange={(e) => setLoginName(e.target.value)}
-                    placeholder="เช่น สุพจน์ เหมสถล หรือ Supot Hemsathol"
+                    placeholder="เช่น คุณสุพจน์ มั่นสิทธิกุล หรือ Mr. Supot Munsittikul"
                     className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   />
                 </div>
@@ -592,7 +593,7 @@ export default function AdminInquiriesPage() {
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  อีเมลองค์กร <span className="text-slate-500 text-[11px]">(Company Email)</span>
+                  อีเมลจริงของผู้ใช้งาน <span className="text-slate-500 text-[11px]">(ตามผังโครงสร้างองค์กร)</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
@@ -601,7 +602,7 @@ export default function AdminInquiriesPage() {
                     required
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="เช่น supot.meskp@gmail.com"
+                    placeholder="เช่น supot.meskp@gmail.com หรือ rangsarit.meskp@gmail.com"
                     className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-mono"
                   />
                 </div>
@@ -646,56 +647,56 @@ export default function AdminInquiriesPage() {
             {/* Quick Test Accounts Presets */}
             <div className="mt-6 pt-5 border-t border-slate-800">
               <div className="text-[11px] font-mono text-slate-400 mb-2.5 flex items-center justify-between">
-                <span>⚡ เลือกผู้ใช้งานทดสอบ (One-Click Test):</span>
+                <span>⚡ เลือกผู้ใช้งานทดสอบ (ตามผังองค์กรจริง):</span>
                 <span className="text-cyan-400 font-sans text-[10px]">รหัสผ่าน: skp@admin2026</span>
               </div>
               <div className="grid grid-cols-1 gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => handleQuickFill('สุพจน์ เหมสถล', 'supot.meskp@gmail.com')}
+                  onClick={() => handleQuickFill('คุณสุพจน์ มั่นสิทธิกุล', 'supot.meskp@gmail.com')}
                   className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
                 >
                   <div>
-                    <span className="font-semibold text-white group-hover:text-cyan-300">สุพจน์ เหมสถล (ไทย)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • กรรมการผู้จัดการ</span>
+                    <span className="font-semibold text-white group-hover:text-cyan-300">คุณสุพจน์ มั่นสิทธิกุล (กรรมการผู้จัดการ)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • โทร 093-695 6445</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">MD</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleQuickFill('Supot Hemsathol', 'supot.meskp@gmail.com')}
-                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-white group-hover:text-cyan-300">Supot Hemsathol (English)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • Managing Director</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">MD</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('วิไลวรรณ โกฆะรัตน์', 'admin@skpassociation.co.th')}
+                  onClick={() => handleQuickFill('คุณวิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com')}
                   className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
                 >
                   <div>
-                    <span className="font-semibold text-white group-hover:text-blue-300">วิไลวรรณ โกฆะรัตน์</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">admin@skpassociation.co.th • ฝ่ายธุรการ</span>
+                    <span className="font-semibold text-white group-hover:text-blue-300">คุณวิไลวรรณ โกฆะรัตน์ (ฝ่ายธุรการ / จป.)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">vilaivan2518@gmail.com • โทร 082-208 4541</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Admin</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleQuickFill('รังสฤทธิ์ สุหลง', 'engineer.rangsarit@skpassociation.co.th')}
+                  onClick={() => handleQuickFill('คุณรังสฤทธิ์ สุหลง', 'rangsarit.meskp@gmail.com')}
                   className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
                 >
                   <div>
-                    <span className="font-semibold text-white group-hover:text-amber-300">รังสฤทธิ์ สุหลง (ไฟฟ้า)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">engineer.rangsarit@skpassociation.co.th • วิศวกรโครงการ</span>
+                    <span className="font-semibold text-white group-hover:text-amber-300">คุณรังสฤทธิ์ สุหลง (วิศวกรโครงการ)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">rangsarit.meskp@gmail.com • โทร 064-630 4866</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Engineer</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('คุณประเสริฐ ลากะสงค์', 'prasertlakasong@gmail.com')}
+                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-emerald-300">คุณประเสริฐ ลากะสงค์ (วิศวกรโครงการ / Foreman)</span>
+                    <span className="block text-[10px] text-slate-400 font-mono">prasertlakasong@gmail.com • โทร 062-624 8171</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Engineer</span>
                 </button>
 
                 <button
