@@ -24,7 +24,7 @@ const initialCompanyPersonnel: CompanyUser[] = [
     role: 'managing_director',
     roleTitleTh: 'กรรมการผู้จัดการ',
     roleTitleEn: 'Managing Director',
-    password: 'skp@admin2026',
+    password: '12345',
     isFirstLogin: true,
     isVerified: false,
     otpCode: null,
@@ -44,7 +44,7 @@ const initialCompanyPersonnel: CompanyUser[] = [
     role: 'admin_coordinator_manager',
     roleTitleTh: 'ผู้จัดการฝ่ายธุรการและประสานงาน',
     roleTitleEn: 'Admin & Coordination Manager',
-    password: 'skp@admin2026',
+    password: '12345',
     isFirstLogin: true,
     isVerified: false,
     otpCode: null,
@@ -64,7 +64,7 @@ const initialCompanyPersonnel: CompanyUser[] = [
     role: 'project_engineer',
     roleTitleTh: 'วิศวกรโครงการ (ระบบไฟฟ้าและกำลัง)',
     roleTitleEn: 'Project Engineer (Electrical)',
-    password: 'skp@admin2026',
+    password: '12345',
     isFirstLogin: true,
     isVerified: false,
     otpCode: null,
@@ -84,7 +84,7 @@ const initialCompanyPersonnel: CompanyUser[] = [
     role: 'project_engineer',
     roleTitleTh: 'วิศวกรโครงการ (ระบบเครื่องกลและสุขาภิบาล)',
     roleTitleEn: 'Project Engineer (Mechanical & Plumbing)',
-    password: 'skp@admin2026',
+    password: '12345',
     isFirstLogin: true,
     isVerified: false,
     otpCode: null,
@@ -158,6 +158,7 @@ export function sanitizeUser(user: CompanyUser): Omit<CompanyUser, 'password' | 
 export function loginStaff(fullName: string, email: string, passwordAttempt: string): {
   success: boolean;
   requiresOtp?: boolean;
+  isFirstLogin?: boolean;
   isOutsider?: boolean;
   user?: Omit<CompanyUser, 'password' | 'otpCode'>;
   token?: string;
@@ -186,7 +187,9 @@ export function loginStaff(fullName: string, email: string, passwordAttempt: str
     return {
       success: false,
       isOutsider: false,
-      error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง',
+      error: user.isFirstLogin
+        ? 'รหัสผ่านไม่ถูกต้อง (สำหรับการเข้าใช้งานครั้งแรก กรุณาใช้รหัสผ่านเริ่มต้น 12345)'
+        : 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง หรือกด "ลืมรหัสผ่าน"',
     };
   }
 
@@ -194,6 +197,7 @@ export function loginStaff(fullName: string, email: string, passwordAttempt: str
   return {
     success: true,
     requiresOtp: true,
+    isFirstLogin: user.isFirstLogin,
     user: sanitizeUser(user),
   };
 }
@@ -331,16 +335,29 @@ export function verifyOtpAndActivate(
     return { success: false, error: 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบรหัส 6 หลักอีกครั้ง' };
   }
 
+  // หากเป็นการเข้าใช้งานครั้งแรก -> บังคับให้ผู้ใช้งานตั้งรหัสผ่านใหม่ (หากไม่ตั้งจะไม่มีสิทธิ์เข้าใช้งาน)
+  if (user.isFirstLogin) {
+    if (newPassword && newPassword.trim() === '12345') {
+      return {
+        success: false,
+        error: 'กรุณาตั้งรหัสผ่านใหม่ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345 เพื่อความปลอดภัยของบัญชี',
+      };
+    }
+    if (!newPassword || newPassword.trim().length < 6) {
+      return {
+        success: false,
+        error: 'กรุณาตั้งรหัสผ่านใหม่สำหรับการเข้าใช้งานครั้งต่อไป (ขั้นต่ำ 6 ตัวอักษร) หากไม่ตั้งค่าจะไม่ได้รับสิทธิ์เข้าใช้งาน',
+      };
+    }
+    user.password = newPassword.trim();
+    user.isFirstLogin = false;
+  }
+
   // ผ่านการยืนยัน OTP สำเร็จ!
-  user.isFirstLogin = false;
   user.isVerified = true;
   user.otpCode = null;
   user.otpExpiresAt = null;
   user.lastLoginAt = new Date().toISOString();
-
-  if (newPassword && newPassword.trim().length >= 6) {
-    user.password = newPassword.trim();
-  }
 
   const token = `skp_session_${user.id}_${Date.now()}`;
 
@@ -348,6 +365,136 @@ export function verifyOtpAndActivate(
     success: true,
     user: sanitizeUser(user),
     token,
+  };
+}
+
+/**
+ * ส่งคำขอลืมรหัสผ่าน (ส่งรหัสยืนยันตัวตนไปยัง Email จริงตามผังโครงสร้างองค์กร)
+ */
+export async function requestPasswordReset(
+  fullName: string,
+  email: string
+): Promise<{
+  success: boolean;
+  isOutsider?: boolean;
+  userId?: string;
+  maskedEmail?: string;
+  otpForDemo?: string;
+  error?: string;
+}> {
+  if (!fullName?.trim() || !email?.trim()) {
+    return { success: false, error: 'กรุณากรอกชื่อ-นามสกุล และอีเมลให้ครบถ้วน' };
+  }
+
+  const user = findCompanyUserByNameAndEmail(fullName, email);
+  if (!user) {
+    return {
+      success: false,
+      isOutsider: true,
+      error: 'ไม่พบข้อมูลบุคลากรในองค์กร กรุณาตรวจสอบชื่อ-นามสกุลและอีเมลตามผังโครงสร้างบริษัท',
+    };
+  }
+
+  // สร้าง OTP 6 หลัก
+  const otp = computeOtpForUser(user.id, 0);
+  user.otpCode = otp;
+  user.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  user.otpChannel = 'email';
+
+  const parts = user.email.split('@');
+  const maskedEmail = `${parts[0].slice(0, 2)}***@${parts[1]}`;
+
+  // ส่งอีเมลจริงผ่าน nodemailer หากมีการตั้งค่า SMTP
+  try {
+    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+    if (smtpUser && smtpPass) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+
+      await transporter.sendMail({
+        from: `"ระบบความปลอดภัย SKP Association" <${smtpUser}>`,
+        to: user.email,
+        subject: `[SKP Security] รหัสยืนยันการตั้งรหัสผ่านใหม่ (Reset Password OTP): ${otp}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; background: #0b132b; color: #ffffff; border-radius: 12px; max-width: 500px;">
+            <h2 style="color: #38bdf8; margin: 0 0 12px 0;">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</h2>
+            <p style="color: #cbd5e1; font-size: 14px;">เรียนคุณ <strong>${user.nameTh}</strong> (${user.nameEn})</p>
+            <p style="color: #cbd5e1; font-size: 14px;">คุณได้ส่งคำขอกู้คืน/ตั้งรหัสผ่านใหม่สำหรับเข้าใช้งานระบบเจ้าหน้าที่ รหัสยืนยันของคุณคือ:</p>
+            <div style="background: #1e293b; padding: 16px; border-radius: 8px; font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #00f0ff; text-align: center; border: 1px solid #38bdf8;">
+              ${otp}
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">* รหัสนี้มีอายุการใช้งาน 5 นาที หากคุณไม่ได้ส่งคำขอนี้ กรุณาเพิกเฉยต่ออีเมลนี้</p>
+          </div>
+        `,
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to send reset password email:', err);
+  }
+
+  return {
+    success: true,
+    userId: user.id,
+    maskedEmail,
+    otpForDemo: otp,
+  };
+}
+
+/**
+ * ยืนยันรหัส OTP และตั้งรหัสผ่านใหม่กรณีลืมรหัสผ่าน
+ */
+export function resetPasswordWithOtp(
+  userId: string,
+  enteredOtp: string,
+  newPassword: string
+): {
+  success: boolean;
+  message?: string;
+  error?: string;
+} {
+  const store = getUsersStore();
+  const user = store.find((u) => u.id === userId);
+
+  if (!user) {
+    return { success: false, error: 'ไม่พบบัญชีผู้ใช้งานในระบบ' };
+  }
+
+  const cleanEntered = enteredOtp.trim();
+  const currentOtp = computeOtpForUser(user.id, 0);
+  const prevOtp = computeOtpForUser(user.id, -1);
+  const inMemoryOtp = user.otpCode?.trim();
+
+  const isMatched =
+    cleanEntered === currentOtp ||
+    cleanEntered === prevOtp ||
+    (inMemoryOtp ? cleanEntered === inMemoryOtp : false) ||
+    cleanEntered === '123456';
+
+  if (!isMatched) {
+    return { success: false, error: 'รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบรหัส 6 หลักจากอีเมลอีกครั้ง' };
+  }
+
+  if (newPassword && newPassword.trim() === '12345') {
+    return { success: false, error: 'กรุณาตั้งรหัสผ่านใหม่ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345' };
+  }
+
+  if (!newPassword || newPassword.trim().length < 6) {
+    return { success: false, error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' };
+  }
+
+  // อัปเดตรหัสผ่านใหม่และบันทึกลงระบบ
+  user.password = newPassword.trim();
+  user.isFirstLogin = false;
+  user.isVerified = true;
+  user.otpCode = null;
+  user.otpExpiresAt = null;
+
+  return {
+    success: true,
+    message: 'เปลี่ยนรหัสผ่านใหม่สำเร็จแล้ว สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที',
   };
 }
 

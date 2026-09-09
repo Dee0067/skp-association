@@ -73,11 +73,26 @@ export default function AdminInquiriesPage() {
   const [otpStep, setOtpStep] = useState<'select' | 'input'>('select');
   const [otpCodeInput, setOtpCodeInput] = useState('');
   const [otpNewPassword, setOtpNewPassword] = useState('');
+  const [otpConfirmPassword, setOtpConfirmPassword] = useState('');
   const [otpError, setOtpError] = useState('');
   const [otpMaskedTarget, setOtpMaskedTarget] = useState('');
   const [otpDemoCode, setOtpDemoCode] = useState('');
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
+  // Forgot Password Modal State
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'request' | 'verify' | 'success'>('request');
+  const [forgotName, setForgotName] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotUserId, setForgotUserId] = useState('');
+  const [forgotMaskedEmail, setForgotMaskedEmail] = useState('');
+  const [forgotDemoCode, setForgotDemoCode] = useState('');
+  const [forgotOtpCode, setForgotOtpCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const [currentRole, setCurrentRole] = useState<RoleType>('managing_director');
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>([]);
@@ -288,6 +303,23 @@ export default function AdminInquiriesPage() {
       setOtpError('กรุณากรอกรหัส OTP 6 หลัก');
       return;
     }
+
+    // สำหรับการเข้าใช้งานครั้งแรก บังคับให้ตั้งรหัสผ่านใหม่ (หากไม่ตั้งจะไม่มีสิทธิ์เข้าใช้งาน)
+    if (otpPendingUser.isFirstLogin) {
+      if (!otpNewPassword || otpNewPassword.trim().length < 6) {
+        setOtpError('สำหรับการเข้าใช้งานครั้งแรก กรุณาตั้งรหัสผ่านใหม่ (ขั้นต่ำ 6 ตัวอักษร) เพื่อเปิดสิทธิ์การใช้งาน');
+        return;
+      }
+      if (otpNewPassword.trim() === '12345') {
+        setOtpError('กรุณาตั้งรหัสผ่านใหม่ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345');
+        return;
+      }
+      if (otpNewPassword !== otpConfirmPassword) {
+        setOtpError('รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน');
+        return;
+      }
+    }
+
     setIsVerifyingOtp(true);
     setOtpError('');
     try {
@@ -318,6 +350,8 @@ export default function AdminInquiriesPage() {
         setShowOtpModal(false);
         setOtpPendingUser(null);
         setOtpCodeInput('');
+        setOtpNewPassword('');
+        setOtpConfirmPassword('');
       } else {
         setOtpError(data.error || 'รหัส OTP ไม่ถูกต้องหรือหมดอายุ');
       }
@@ -325,6 +359,86 @@ export default function AdminInquiriesPage() {
       setOtpError(err.message || 'เกิดข้อผิดพลาดในการยืนยัน OTP');
     } finally {
       setIsVerifyingOtp(false);
+    }
+  };
+
+  // Handle Forgot Password - Request OTP via Email
+  const handleRequestForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request',
+          fullName: forgotName.trim(),
+          email: forgotEmail.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        if (data.isOutsider) {
+          setIsForgotPasswordOpen(false);
+          setIsOutsiderBlocked(true);
+          setOutsiderCountdown(3);
+          return;
+        }
+        setForgotError(data.error || 'ไม่สามารถส่งรหัสยืนยันได้');
+        return;
+      }
+      setForgotUserId(data.userId);
+      setForgotMaskedEmail(data.maskedEmail);
+      setForgotDemoCode(data.otpForDemo || '');
+      setForgotStep('verify');
+    } catch (err: any) {
+      setForgotError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  // Handle Forgot Password - Verify OTP and Reset Password
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+
+    if (forgotNewPassword.length < 6) {
+      setForgotError('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+      return;
+    }
+    if (forgotNewPassword === '12345') {
+      setForgotError('กรุณาตั้งรหัสผ่านใหม่ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน');
+      return;
+    }
+
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          userId: forgotUserId,
+          code: forgotOtpCode.trim(),
+          newPassword: forgotNewPassword.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setForgotError(data.error || 'การเปลี่ยนรหัสผ่านล้มเหลว');
+        return;
+      }
+      setForgotStep('success');
+    } catch (err: any) {
+      setForgotError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsForgotLoading(false);
     }
   };
 
@@ -576,9 +690,9 @@ export default function AdminInquiriesPage() {
             <p className="text-slate-400 text-[11px] leading-relaxed">
               • สงวนสิทธิ์เฉพาะเจ้าหน้าที่และบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น (คนนอกไม่สามารถเข้าใช้งานได้)<br />
               • ใช้อีเมลจริงของผู้ใช้งานตามผังโครงสร้างองค์กร (เช่น <span className="text-cyan-300 font-mono">@gmail.com</span>)<br />
-              • รองรับการกรอกชื่อ-นามสกุล ทั้ง<strong className="text-slate-200">ภาษาไทย</strong>และ<strong className="text-slate-200">ภาษาอังกฤษ</strong><br />
+              • เข้าใช้งานครั้งแรก ใช้รหัสผ่านเริ่มต้น <strong className="text-cyan-300">12345</strong> และบังคับตั้งรหัสผ่านใหม่หลังยืนยัน OTP<br />
               • บังคับยืนยันรหัสความปลอดภัย <strong className="text-cyan-300">OTP</strong> ทางอีเมล หรือ เบอร์มือถือ ทุกครั้งที่มีการล็อกอินเข้าใช้งาน<br />
-              • หากไม่ใช่บุคลากรในองค์กร ระบบจะแจ้งเตือนการไม่มีสิทธิ์และตัดกลับสู่หน้าหลักทันที
+              • หากลืมรหัสผ่าน สามารถกด <strong className="text-cyan-400 font-medium">&ldquo;ลืมรหัสผ่าน?&rdquo;</strong> เพื่อยืนยันผ่าน Email และตั้งรหัสผ่านใหม่ได้ทันที
             </p>
           </div>
         </div>
@@ -628,9 +742,24 @@ export default function AdminInquiriesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  รหัสผ่าน <span className="text-slate-500 text-[11px]">(Password)</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-300">
+                    รหัสผ่าน <span className="text-slate-500 text-[11px]">(Password)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPasswordOpen(true);
+                      setForgotError('');
+                      setForgotStep('request');
+                      setForgotName(loginName);
+                      setForgotEmail(loginEmail);
+                    }}
+                    className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                  >
+                    ลืมรหัสผ่าน? (Forgot?)
+                  </button>
+                </div>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input
@@ -638,9 +767,12 @@ export default function AdminInquiriesPage() {
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="รหัสผ่านเข้าใช้งาน (ครั้งแรกใช้ 12345)"
                     className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
                   />
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                  <span>* เข้าใช้งานครั้งแรก ใช้รหัสเริ่มต้น: <strong className="text-cyan-300">12345</strong></span>
                 </div>
               </div>
 
@@ -686,7 +818,11 @@ export default function AdminInquiriesPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">ยืนยันตัวตนด้วยรหัส OTP</h3>
-                    <p className="text-[11px] text-cyan-400 font-mono">ระบบความปลอดภัย 2 ขั้นตอน (บังคับยืนยันทุกครั้งที่เข้าสู่ระบบ)</p>
+                    <p className="text-[11px] text-cyan-400 font-mono">
+                      {otpPendingUser.isFirstLogin
+                        ? '⭐ การเข้าสู่ระบบครั้งแรก (จำเป็นต้องตั้งรหัสผ่านใหม่)'
+                        : 'ระบบความปลอดภัย 2 ขั้นตอน (บังคับยืนยันทุกครั้งที่เข้าสู่ระบบ)'}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -799,18 +935,43 @@ export default function AdminInquiriesPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      ตั้งรหัสผ่านใหม่ <span className="text-slate-500 text-[10px]">(ไม่บังคับ สำหรับเข้าใช้งานครั้งต่อไป)</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={otpNewPassword}
-                      onChange={(e) => setOtpNewPassword(e.target.value)}
-                      placeholder="กำหนดรหัสผ่านใหม่ (ขั้นต่ำ 6 ตัวอักษร)"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
+                  {otpPendingUser.isFirstLogin && (
+                    <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 space-y-3 animate-in fade-in">
+                      <div className="flex items-center space-x-1.5 text-cyan-300 text-xs font-semibold">
+                        <KeyRound className="w-4 h-4 text-cyan-400" />
+                        <span>ตั้งรหัสผ่านใหม่ของท่าน (จำเป็นต้องระบุเพื่อเข้าใช้งาน)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        * สำหรับการเข้าใช้งานครั้งแรก ระบบบังคับให้ตั้งรหัสผ่านใหม่ (หากไม่ตั้งจะไม่ได้รับสิทธิ์เข้าใช้งาน)
+                      </p>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                          รหัสผ่านใหม่ <span className="text-rose-400">*</span> <span className="text-slate-500 text-[10px]">(ขั้นต่ำ 6 ตัวอักษร และไม่ใช่ 12345)</span>
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          value={otpNewPassword}
+                          onChange={(e) => setOtpNewPassword(e.target.value)}
+                          placeholder="กำหนดรหัสผ่านใหม่"
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                          ยืนยันรหัสผ่านใหม่อีกครั้ง <span className="text-rose-400">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          required
+                          value={otpConfirmPassword}
+                          onChange={(e) => setOtpConfirmPassword(e.target.value)}
+                          placeholder="กรอกรหัสผ่านใหม่อีกครั้งเพื่อยืนยัน"
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2 pt-2">
                     <button
@@ -826,7 +987,11 @@ export default function AdminInquiriesPage() {
                       ) : (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>ยืนยันรหัส OTP เพื่อเข้าสู่ระบบ (Sign In)</span>
+                          <span>
+                            {otpPendingUser.isFirstLogin
+                              ? 'ยืนยันรหัส OTP และบันทึกรหัสผ่านใหม่'
+                              : 'ยืนยันรหัส OTP เพื่อเข้าสู่ระบบ (Sign In)'}
+                          </span>
                         </>
                       )}
                     </button>
@@ -884,6 +1049,210 @@ export default function AdminInquiriesPage() {
                 <ArrowLeft className="w-4 h-4" />
                 <span>กลับสู่หน้าหลักเว็บไซต์ทันที (Return to Home)</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Forgot Password Modal */}
+        {isForgotPasswordOpen && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">ลืมรหัสผ่าน (Forgot Password)</h3>
+                    <p className="text-[11px] text-cyan-400 font-mono">ยืนยันตัวตนผ่านอีเมลองค์กรเพื่อตั้งรหัสผ่านใหม่</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {forgotError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{forgotError}</span>
+                </div>
+              )}
+
+              {forgotStep === 'request' && (
+                <form onSubmit={handleRequestForgot} className="space-y-4">
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    กรุณากรอกชื่อ-นามสกุล และอีเมลของท่านตามผังองค์กร ระบบจะส่งรหัสความปลอดภัย OTP 6 หลัก ไปยังกล่องข้อความอีเมลของท่าน:
+                  </p>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      ชื่อ - นามสกุล <span className="text-slate-500 text-[11px]">(ไทยหรืออังกฤษ)</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={forgotName}
+                      onChange={(e) => setForgotName(e.target.value)}
+                      placeholder="เช่น คุณสุพจน์ มั่นสิทธิกุล หรือ Mr. Supot Munsittikul"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      อีเมลจริงของผู้ใช้งาน <span className="text-slate-500 text-[11px]">(ตามผังโครงสร้างองค์กร)</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="เช่น supot.meskp@gmail.com"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isForgotLoading}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {isForgotLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>กำลังตรวจสอบและส่งรหัส OTP...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>ส่งรหัส OTP ไปยังอีเมล (Send Reset Code)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {forgotStep === 'verify' && (
+                <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+                  <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs space-y-1">
+                    <div className="text-cyan-300 font-medium">
+                      ส่งรหัส OTP กู้คืนรหัสผ่านเรียบร้อยแล้ว ไปยังอีเมล:
+                    </div>
+                    <div className="text-white font-mono text-sm font-bold">{forgotMaskedEmail}</div>
+                    {forgotDemoCode && (
+                      <div className="mt-2 pt-2 border-t border-cyan-800/40 text-[11px] text-cyan-200">
+                        🔑 <span className="font-semibold text-white">รหัสทดสอบ Sandbox:</span>{' '}
+                        <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-mono font-bold tracking-widest text-xs border border-cyan-500/30">
+                          {forgotDemoCode}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1 text-center">
+                      กรอกรหัส OTP 6 หลัก จากอีเมล
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      autoFocus
+                      value={forgotOtpCode}
+                      onChange={(e) => setForgotOtpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••••"
+                      className="w-full text-center py-2.5 text-2xl font-mono tracking-widest font-bold bg-slate-950 border border-slate-800 rounded-xl text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      ตั้งรหัสผ่านใหม่ <span className="text-slate-500 text-[10px]">(ขั้นต่ำ 6 ตัวอักษร และไม่ใช่ 12345)</span>
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      placeholder="กำหนดรหัสผ่านใหม่"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      ยืนยันรหัสผ่านใหม่อีกครั้ง
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="submit"
+                      disabled={isForgotLoading || forgotOtpCode.length < 6}
+                      className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {isForgotLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>กำลังบันทึกรหัสผ่านใหม่...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>ยืนยันและบันทึกรหัสผ่านใหม่</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForgotStep('request')}
+                      className="w-full py-1 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      ส่งรหัส OTP ไปใหม่อีกครั้ง
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {forgotStep === 'success' && (
+                <div className="text-center space-y-4 py-4 animate-in zoom-in-95">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-white">ตั้งรหัสผ่านใหม่สำเร็จแล้ว!</h4>
+                    <p className="text-xs text-slate-300">
+                      ระบบได้บันทึกรหัสผ่านใหม่ของคุณเรียบร้อยแล้ว คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPasswordOpen(false);
+                      setLoginPassword(forgotNewPassword);
+                    }}
+                    className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer"
+                  >
+                    กลับไปหน้าเข้าสู่ระบบ (Sign In Now)
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

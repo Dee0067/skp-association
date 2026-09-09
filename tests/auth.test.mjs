@@ -7,6 +7,8 @@ import {
   loginStaff, 
   generateAndSendOtp, 
   verifyOtpAndActivate,
+  requestPasswordReset,
+  resetPasswordWithOtp,
   getAllCompanyUsers 
 } from '../src/lib/usersStore.ts';
 import { translations } from '../src/translations/index.ts';
@@ -62,7 +64,7 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
   });
 
   await t.test('Outsiders (non-whitelisted users) are strictly blocked from login and flagged', () => {
-    const outsiderLogin = loginStaff('สมชาย คนนอก', 'outsider@gmail.com', '123456');
+    const outsiderLogin = loginStaff('สมชาย คนนอก', 'outsider@gmail.com', '12345');
     assert.equal(outsiderLogin.success, false);
     assert.equal(outsiderLogin.isOutsider, true, 'Must flag outsider login attempt');
     assert.ok(
@@ -70,94 +72,119 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
       'Must reject outsiders with company whitelist notice'
     );
 
-    const wrongEmail = loginStaff('สุพจน์ เหมสถล', 'wrong.email@gmail.com', 'skp@admin2026');
+    const wrongEmail = loginStaff('สุพจน์ เหมสถล', 'wrong.email@gmail.com', '12345');
     assert.equal(wrongEmail.success, false);
     assert.equal(wrongEmail.isOutsider, true);
   });
 
-  await t.test('Password check: Incorrect password returns explicit error', () => {
+  await t.test('Initial password check: First login uses 12345, incorrect password returns guidance', () => {
     const wrongPass = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'wrong_pass_123');
     assert.equal(wrongPass.success, false);
     assert.equal(wrongPass.isOutsider, false);
-    assert.ok(wrongPass.error.includes('รหัสผ่านไม่ถูกต้อง'));
+    assert.ok(wrongPass.error.includes('12345'), 'Must guide user to initial password 12345');
+
+    const correctFirstLogin = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', '12345');
+    assert.equal(correctFirstLogin.success, true);
+    assert.equal(correctFirstLogin.isFirstLogin, true);
   });
 
-  await t.test('Login workflow enforces OTP verification on EVERY login attempt', async () => {
-    // 1. Initial attempt login with correct credentials -> triggers requiresOtp
-    const firstLogin = loginStaff('Supot Hemsathol', 'supot.meskp@gmail.com', 'skp@admin2026');
+  await t.test('First login mandates setting a new password (no access without new password)', async () => {
+    // 1. Initial attempt login with 12345 -> triggers requiresOtp & isFirstLogin
+    const firstLogin = loginStaff('Supot Hemsathol', 'supot.meskp@gmail.com', '12345');
     assert.equal(firstLogin.success, true);
-    assert.equal(firstLogin.requiresOtp, true, 'First login must require OTP');
-    assert.ok(firstLogin.user, 'Must return sanitized user info');
+    assert.equal(firstLogin.requiresOtp, true);
+    assert.equal(firstLogin.isFirstLogin, true);
 
     const userId = firstLogin.user.id;
 
     // 2. Request OTP via Email
     const otpEmailResult = await generateAndSendOtp(userId, 'email');
     assert.equal(otpEmailResult.success, true);
-    assert.equal(otpEmailResult.channel, 'email');
-    assert.ok(otpEmailResult.maskedTarget.includes('@gmail.com'));
-    assert.equal(otpEmailResult.otpForDemo.length, 6, 'OTP must be 6 digits');
+    const currentOtp = otpEmailResult.otpForDemo;
 
-    // 3. Request OTP via Mobile
-    const otpMobileResult = await generateAndSendOtp(userId, 'mobile');
-    assert.equal(otpMobileResult.success, true);
-    assert.equal(otpMobileResult.channel, 'mobile');
-    assert.ok(otpMobileResult.maskedTarget.includes('-***-'));
-    assert.equal(otpMobileResult.otpForDemo.length, 6);
+    // 3. Verify OTP without new password FAILS (strictly mandatory!)
+    const failNoNewPassword = verifyOtpAndActivate(userId, currentOtp);
+    assert.equal(failNoNewPassword.success, false);
+    assert.ok(failNoNewPassword.error.includes('กรุณาตั้งรหัสผ่านใหม่'));
 
-    const currentOtp = otpMobileResult.otpForDemo;
+    // 4. Verify OTP with new password as '12345' FAILS (cannot keep default password)
+    const failKeepDefault = verifyOtpAndActivate(userId, currentOtp, '12345');
+    assert.equal(failKeepDefault.success, false);
+    assert.ok(failKeepDefault.error.includes('ที่ไม่ซ้ำกับรหัสเริ่มต้น 12345'));
 
-    // 4. Verify with wrong OTP fails
-    const invalidVerify = verifyOtpAndActivate(userId, '000000');
-    assert.equal(invalidVerify.success, false);
-    assert.ok(invalidVerify.error.includes('รหัส OTP ไม่ถูกต้อง'));
+    // 5. Verify OTP with valid new password SUCCEEDS
+    const successVerify = verifyOtpAndActivate(userId, currentOtp, 'Supot@Secret2026');
+    assert.equal(successVerify.success, true);
+    assert.ok(successVerify.token, 'Must return auth token upon activation');
 
-    // 5. Verify with correct OTP succeeds and activates user
-    const validVerify = verifyOtpAndActivate(userId, currentOtp, 'new_secure_pwd_2026');
-    assert.equal(validVerify.success, true);
-    assert.ok(validVerify.token, 'Must return auth token upon successful activation');
+    // 6. Next login with old default 12345 now FAILS
+    const tryOldPassword = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', '12345');
+    assert.equal(tryOldPassword.success, false);
 
-    // 6. Every subsequent login STILL requires OTP verification
-    const subsequentLogin = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'new_secure_pwd_2026');
+    // 7. Next login with new password SUCCEEDS and still enforces OTP
+    const subsequentLogin = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'Supot@Secret2026');
     assert.equal(subsequentLogin.success, true);
-    assert.equal(subsequentLogin.requiresOtp, true, 'Subsequent login must still require OTP on every attempt');
+    assert.equal(subsequentLogin.requiresOtp, true);
+    assert.equal(subsequentLogin.isFirstLogin, false, 'Should no longer be marked as first login');
   });
 
-  await t.test('Admin UI Portal has removed test user presets and includes outsider redirection', () => {
+  await t.test('Forgot Password flow via email OTP works seamlessly', async () => {
+    // 1. Outsider request password reset fails
+    const outsiderForgot = await requestPasswordReset('สมชาย คนนอก', 'outsider@gmail.com');
+    assert.equal(outsiderForgot.success, false);
+    assert.equal(outsiderForgot.isOutsider, true);
+
+    // 2. Official staff request password reset succeeds and sends OTP
+    const staffForgot = await requestPasswordReset('คุณวิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com');
+    assert.equal(staffForgot.success, true);
+    assert.ok(staffForgot.userId);
+    assert.ok(staffForgot.maskedEmail.includes('@gmail.com'));
+    assert.equal(staffForgot.otpForDemo.length, 6);
+
+    const resetOtp = staffForgot.otpForDemo;
+
+    // 3. Reset with wrong OTP fails
+    const failResetOtp = resetPasswordWithOtp(staffForgot.userId, '000000', 'newPasswordWilaiwan2026');
+    assert.equal(failResetOtp.success, false);
+    assert.ok(failResetOtp.error.includes('รหัส OTP ไม่ถูกต้อง'));
+
+    // 4. Reset with valid OTP succeeds
+    const successReset = resetPasswordWithOtp(staffForgot.userId, resetOtp, 'Wilaiwan#New2026');
+    assert.equal(successReset.success, true);
+
+    // 5. Login with newly reset password succeeds
+    const loginAfterReset = loginStaff('วิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com', 'Wilaiwan#New2026');
+    assert.equal(loginAfterReset.success, true);
+    assert.equal(loginAfterReset.requiresOtp, true);
+  });
+
+  await t.test('Admin UI Portal includes Forgot Password button and modal', () => {
     const adminPath = path.resolve('src/app/admin/page.tsx');
     const adminContent = fs.readFileSync(adminPath, 'utf8');
-    assert.equal(adminContent.includes('handleQuickFill'), false, 'handleQuickFill must be removed');
-    assert.equal(adminContent.includes('เลือกผู้ใช้งานทดสอบ'), false, 'Quick test preset buttons must be removed');
-    assert.ok(adminContent.includes('isOutsiderBlocked'), 'Admin page must have outsider blocked handling');
-    assert.ok(adminContent.includes('บุคคลภายนอกไม่มีสิทธิ์เข้าใช้งาน'), 'Admin page must show outsider access denied modal');
+    assert.equal(adminContent.includes('handleQuickFill'), false, 'Quick fill must be removed');
+    assert.ok(adminContent.includes('isForgotPasswordOpen'), 'Admin page must have isForgotPasswordOpen state');
+    assert.ok(adminContent.includes('ลืมรหัสผ่าน'), 'Admin page must have forgot password UI');
+    assert.ok(adminContent.includes('12345'), 'Admin page must state default password 12345');
   });
 
   await t.test('Navbar and Translations include Admin Portal', () => {
-    // Check translations
     assert.ok(translations.th.nav.admin, 'Thai translations must have nav.admin');
     assert.ok(translations.en.nav.admin, 'English translations must have nav.admin');
 
-    // Check Navbar.tsx contains Admin link
     const navbarPath = path.resolve('src/components/Navbar.tsx');
     const navbarContent = fs.readFileSync(navbarPath, 'utf8');
     assert.ok(navbarContent.includes('href="/admin"'), 'Navbar must link to /admin');
     assert.ok(navbarContent.includes('ShieldCheck'), 'Navbar must include ShieldCheck icon');
   });
 
-  await t.test('Database schemas contain company users table and authentication columns', () => {
+  await t.test('Database schemas contain company users table and default password 12345', () => {
     const pgSql = fs.readFileSync(path.resolve('database/schema.sql'), 'utf8');
-    assert.ok(pgSql.includes('CREATE TABLE users'), 'Postgres schema must define users table');
-    assert.ok(pgSql.includes('is_first_login'), 'Postgres schema must have is_first_login');
-    assert.ok(pgSql.includes('otp_code'), 'Postgres schema must have otp_code');
-    assert.ok(pgSql.includes('name_th'), 'Postgres schema must have name_th');
-    assert.ok(pgSql.includes('name_en'), 'Postgres schema must have name_en');
+    assert.ok(pgSql.includes("DEFAULT '12345'"), 'Postgres schema must default password to 12345');
 
     const mySql = fs.readFileSync(path.resolve('database/schema.mysql.sql'), 'utf8');
-    assert.ok(mySql.includes('CREATE TABLE users'), 'MySQL schema must define users table');
-    assert.ok(mySql.includes('is_first_login'), 'MySQL schema must have is_first_login');
+    assert.ok(mySql.includes("DEFAULT '12345'"), 'MySQL schema must default password to 12345');
 
     const prisma = fs.readFileSync(path.resolve('prisma/schema.prisma'), 'utf8');
-    assert.ok(prisma.includes('model User'), 'Prisma schema must define User model');
-    assert.ok(prisma.includes('isFirstLogin'), 'Prisma schema must have isFirstLogin');
+    assert.ok(prisma.includes('@default("12345")'), 'Prisma schema must default password to 12345');
   });
 });

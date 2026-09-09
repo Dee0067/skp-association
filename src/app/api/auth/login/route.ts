@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       requiresOtp: result.requiresOtp,
+      isFirstLogin: result.isFirstLogin,
       user: result.user,
       token: result.token,
       message: result.requiresOtp

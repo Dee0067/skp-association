@@ -46,7 +46,7 @@ model User {
   phone               String
   roleId              String             @map("role_id")
   role                Role               @relation(fields: [roleId], references: [id])
-  passwordHash        String             @default("skp@admin2026") @map("password_hash")
+  passwordHash        String             @default("12345") @map("password_hash")
   isFirstLogin        Boolean            @default(true) @map("is_first_login")
   isVerified          Boolean            @default(false) @map("is_verified")
   otpCode             String?            @map("otp_code")

@@ -37,7 +37,7 @@ CREATE TABLE users (
     email VARCHAR(150) UNIQUE NOT NULL,
     phone VARCHAR(50) NOT NULL,
     role_id VARCHAR(50) NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
-    password_hash VARCHAR(255) NOT NULL DEFAULT 'skp@admin2026',
+    password_hash VARCHAR(255) NOT NULL DEFAULT '12345',
     is_first_login BOOLEAN DEFAULT TRUE,
     is_verified BOOLEAN DEFAULT FALSE,
     otp_code VARCHAR(10),
