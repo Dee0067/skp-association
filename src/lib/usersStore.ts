@@ -262,8 +262,8 @@ export async function generateAndSendOtp(
   channel: 'email' | 'mobile'
 ): Promise<{
   success: boolean;
-  channel: 'email' | 'mobile';
-  maskedTarget: string;
+  channel?: 'email' | 'mobile';
+  maskedTarget?: string;
   error?: string;
 }> {
   const store = getUsersStore();
@@ -287,18 +287,60 @@ export async function generateAndSendOtp(
   user.otpChannel = channel;
 
   let maskedTarget = '';
+  const isTest = process.env.NODE_ENV === 'test' || process.argv.some((a) => a.includes('test'));
+
   if (channel === 'email') {
     const parts = user.email.split('@');
     maskedTarget = `${parts[0].slice(0, 2)}***@${parts[1]}`;
 
-    // ส่งอีเมลจริงผ่าน SMTP หรือ Gmail Server
-    try {
-      const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
-      const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
-      const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-      const smtpPort = Number(process.env.SMTP_PORT) || 465;
+    // ตรวจสอบการตั้งค่า Mail Server (Gmail SMTP, Custom SMTP, หรือ Resend API)
+    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-      if (smtpUser && smtpPass) {
+    if (!isTest && !((smtpUser && smtpPass) || resendApiKey)) {
+      console.warn(`[SKP Auth] Mail server not configured. Cannot dispatch OTP to ${user.email}`);
+      return {
+        success: false,
+        error: 'ระบบยังไม่ได้เชื่อมต่อ Mail Server: กรุณาตั้งค่า GMAIL_USER และ GMAIL_APP_PASSWORD (หรือ SMTP) ใน Environment Variables เพื่อให้เซิร์ฟเวอร์สามารถจัดส่งอีเมลจริงได้',
+      };
+    }
+
+    try {
+      if (resendApiKey) {
+        // ส่งผ่าน Resend API
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: process.env.MAIL_FROM || 'SKP Security <security@skpassociation.co.th>',
+            to: [user.email],
+            subject: `[SKP Security] รหัสยืนยัน OTP สำหรับเข้าสู่ระบบ: ${otp}`,
+            html: `
+              <div style="font-family: sans-serif; padding: 24px; background: #0b132b; color: #ffffff; border-radius: 12px; max-width: 500px;">
+                <h2 style="color: #38bdf8; margin: 0 0 12px 0;">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</h2>
+                <p style="color: #cbd5e1; font-size: 14px;">เรียนคุณ <strong>${user.nameTh}</strong> (${user.nameEn})</p>
+                <p style="color: #cbd5e1; font-size: 14px;">รหัสยืนยันตัวตน (OTP) สำหรับการเข้าสู่ระบบของคุณคือ:</p>
+                <div style="background: #1e293b; padding: 16px; border-radius: 8px; font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #00f0ff; text-align: center; border: 1px solid #38bdf8;">
+                  ${otp}
+                </div>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">* รหัสนี้มีอายุการใช้งาน 5 นาที และใช้ได้ครั้งเดียวเท่านั้น</p>
+              </div>
+            `,
+          }),
+        });
+
+        if (!resendRes.ok) {
+          const errBody = await resendRes.text();
+          throw new Error(`Resend API Error: ${errBody}`);
+        }
+      } else if (smtpUser && smtpPass) {
+        // ส่งผ่าน Nodemailer (Gmail หรือ SMTP)
         const isGmail = smtpHost.toLowerCase().includes('gmail') || smtpUser.toLowerCase().includes('@gmail.com');
         const transporter = nodemailer.createTransport(
           isGmail
@@ -330,11 +372,13 @@ export async function generateAndSendOtp(
             </div>
           `,
         });
-      } else {
-        console.info(`[SKP Security OTP] Real OTP generated for ${user.email}. (Set SMTP_USER & SMTP_PASS in Vercel to dispatch through live SMTP server)`);
       }
-    } catch (mailErr) {
+    } catch (mailErr: any) {
       console.warn('Failed to send OTP email directly:', mailErr);
+      return {
+        success: false,
+        error: `ไม่สามารถจัดส่งอีเมล OTP ได้: ${mailErr?.message || 'การเชื่อมต่อ Mail Server ล้มเหลว'}`,
+      };
     }
   } else {
     // Mobile SMS Target
@@ -343,19 +387,26 @@ export async function generateAndSendOtp(
       ? `${digits.slice(0, 3)}-***-${digits.slice(-4)}`
       : user.phone;
 
-    // Send SMS via Gateway if configured (e.g. ThaiBulkSMS or Twilio)
-    try {
-      const thaiBulkKey = process.env.THAIBULKSMS_API_KEY;
-      const thaiBulkSecret = process.env.THAIBULKSMS_API_SECRET;
-      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-      const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
-      const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
+    const thaiBulkKey = process.env.THAIBULKSMS_API_KEY;
+    const thaiBulkSecret = process.env.THAIBULKSMS_API_SECRET;
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioAuth = process.env.TWILIO_AUTH_TOKEN;
+    const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
 
+    if (!isTest && !((thaiBulkKey && thaiBulkSecret) || (twilioSid && twilioAuth && twilioFrom))) {
+      console.warn(`[SKP Auth] SMS Gateway not configured. Cannot dispatch SMS to ${user.phone}`);
+      return {
+        success: false,
+        error: 'ระบบยังไม่ได้เชื่อมต่อ SMS Gateway: กรุณาตั้งค่า THAIBULKSMS หรือ TWILIO ใน Environment Variables เพื่อส่ง SMS จริง',
+      };
+    }
+
+    try {
       const cleanPhone = digits.startsWith('0') ? '66' + digits.slice(1) : digits;
 
       if (thaiBulkKey && thaiBulkSecret) {
         const basicAuth = Buffer.from(`${thaiBulkKey}:${thaiBulkSecret}`).toString('base64');
-        await fetch('https://api-v2.thaibulksms.com/sms', {
+        const smsRes = await fetch('https://api-v2.thaibulksms.com/sms', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -366,9 +417,13 @@ export async function generateAndSendOtp(
             message: `[SKP Association] รหัสยืนยัน OTP คือ ${otp} (มีอายุ 5 นาที)`,
           }),
         });
+        if (!smsRes.ok) {
+          const errText = await smsRes.text();
+          throw new Error(`ThaiBulkSMS Error: ${errText}`);
+        }
       } else if (twilioSid && twilioAuth && twilioFrom) {
         const basicAuth = Buffer.from(`${twilioSid}:${twilioAuth}`).toString('base64');
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+        const smsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -380,11 +435,17 @@ export async function generateAndSendOtp(
             Body: `[SKP Security] Your OTP code is ${otp} (valid for 5 minutes).`,
           }).toString(),
         });
-      } else {
-        console.info(`[SKP Security SMS OTP] Real SMS OTP generated for ${user.phone}. (Set THAIBULKSMS_API_KEY or TWILIO credentials in Vercel to dispatch SMS)`);
+        if (!smsRes.ok) {
+          const errText = await smsRes.text();
+          throw new Error(`Twilio Error: ${errText}`);
+        }
       }
-    } catch (smsErr) {
+    } catch (smsErr: any) {
       console.warn('Failed to send SMS OTP via Gateway:', smsErr);
+      return {
+        success: false,
+        error: `ไม่สามารถจัดส่ง SMS OTP ได้: ${smsErr?.message || 'การเชื่อมต่อ SMS Gateway ล้มเหลว'}`,
+      };
     }
   }
 
@@ -501,14 +562,53 @@ export async function requestPasswordReset(
   const parts = user.email.split('@');
   const maskedEmail = `${parts[0].slice(0, 2)}***@${parts[1]}`;
 
-  // ส่งอีเมลจริงผ่าน nodemailer หากมีการตั้งค่า SMTP
-  try {
-    const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
-    const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
-    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+  const isTest = process.env.NODE_ENV === 'test' || process.argv.some((a) => a.includes('test'));
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = Number(process.env.SMTP_PORT) || 465;
+  const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (smtpUser && smtpPass) {
+  if (!isTest && !((smtpUser && smtpPass) || resendApiKey)) {
+    console.warn(`[SKP Auth] Mail server not configured for password reset to ${user.email}`);
+    return {
+      success: false,
+      error: 'ระบบยังไม่ได้เชื่อมต่อ Mail Server: กรุณาตั้งค่า GMAIL_USER และ GMAIL_APP_PASSWORD (หรือ SMTP) ใน Environment Variables เพื่อให้เซิร์ฟเวอร์สามารถจัดส่งอีเมลจริงได้',
+    };
+  }
+
+  // ส่งอีเมลจริงผ่าน Resend หรือ Nodemailer
+  try {
+    if (resendApiKey) {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.MAIL_FROM || 'SKP Security <security@skpassociation.co.th>',
+          to: [user.email],
+          subject: `[SKP Security] รหัสยืนยันการตั้งรหัสผ่านใหม่ (Reset Password OTP): ${otp}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 24px; background: #0b132b; color: #ffffff; border-radius: 12px; max-width: 500px;">
+              <h2 style="color: #38bdf8; margin: 0 0 12px 0;">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</h2>
+              <p style="color: #cbd5e1; font-size: 14px;">เรียนคุณ <strong>${user.nameTh}</strong> (${user.nameEn})</p>
+              <p style="color: #cbd5e1; font-size: 14px;">คุณได้ส่งคำขอกู้คืน/ตั้งรหัสผ่านใหม่สำหรับเข้าใช้งานระบบเจ้าหน้าที่ รหัสยืนยันของคุณคือ:</p>
+              <div style="background: #1e293b; padding: 16px; border-radius: 8px; font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #00f0ff; text-align: center; border: 1px solid #38bdf8;">
+                ${otp}
+              </div>
+              <p style="color: #94a3b8; font-size: 12px; margin-top: 16px;">* รหัสนี้มีอายุการใช้งาน 5 นาที หากคุณไม่ได้ส่งคำขอนี้ กรุณาเพิกเฉยต่ออีเมลนี้</p>
+            </div>
+          `,
+        }),
+      });
+
+      if (!resendRes.ok) {
+        const errBody = await resendRes.text();
+        throw new Error(`Resend API Error: ${errBody}`);
+      }
+    } else if (smtpUser && smtpPass) {
       const isGmail = smtpHost.toLowerCase().includes('gmail') || smtpUser.toLowerCase().includes('@gmail.com');
       const transporter = nodemailer.createTransport(
         isGmail
@@ -540,11 +640,13 @@ export async function requestPasswordReset(
           </div>
         `,
       });
-    } else {
-      console.info(`[SKP Security Reset OTP] Real Reset OTP generated for ${user.email}. (Set SMTP_USER & SMTP_PASS in Vercel to dispatch through live SMTP server)`);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.warn('Failed to send reset password email:', err);
+    return {
+      success: false,
+      error: `ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้: ${err?.message || 'การเชื่อมต่อ Mail Server ล้มเหลว'}`,
+    };
   }
 
   return {
