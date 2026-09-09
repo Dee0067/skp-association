@@ -13,8 +13,12 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 401 }
+        { 
+          success: false, 
+          error: result.error,
+          isOutsider: !!result.isOutsider,
+        },
+        { status: result.isOutsider ? 403 : 401 }
       );
     }
 
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
       user: result.user,
       token: result.token,
       message: result.requiresOtp
-        ? 'เข้าสู่ระบบครั้งแรก กรุณายืนยันตัวตนด้วยรหัส OTP'
+        ? 'กรุณายืนยันตัวตนด้วยรหัส OTP ทางอีเมลหรือเบอร์มือถือ'
         : 'เข้าสู่ระบบสำเร็จ',
     });
   } catch (error: any) {

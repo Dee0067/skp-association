@@ -158,6 +158,7 @@ export function sanitizeUser(user: CompanyUser): Omit<CompanyUser, 'password' | 
 export function loginStaff(fullName: string, email: string, passwordAttempt: string): {
   success: boolean;
   requiresOtp?: boolean;
+  isOutsider?: boolean;
   user?: Omit<CompanyUser, 'password' | 'otpCode'>;
   token?: string;
   error?: string;
@@ -165,7 +166,7 @@ export function loginStaff(fullName: string, email: string, passwordAttempt: str
   if (!fullName?.trim() || !email?.trim() || !passwordAttempt?.trim()) {
     return {
       success: false,
-      error: 'กรุณากรอกชื่อ-นามสกุล (ภาษาไทยหรืออังกฤษ), อีเมลองค์กร และรหัสผ่านให้ครบถ้วน',
+      error: 'กรุณากรอกชื่อ-นามสกุล (ภาษาไทยหรืออังกฤษ), อีเมลองค์กร และรหัสผ่านให้ครบถ้วนทุกช่อง',
     };
   }
 
@@ -175,7 +176,8 @@ export function loginStaff(fullName: string, email: string, passwordAttempt: str
   if (!user) {
     return {
       success: false,
-      error: 'บุคคลภายนอกไม่สามารถเข้าใช้งานได้ ระบบนี้สงวนสิทธิ์เฉพาะบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น กรุณาตรวจสอบชื่อ-นามสกุลและอีเมล',
+      isOutsider: true,
+      error: 'บุคคลภายนอกไม่สามารถเข้าใช้งานได้ ระบบนี้สงวนสิทธิ์เฉพาะบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น',
     };
   }
 
@@ -183,28 +185,16 @@ export function loginStaff(fullName: string, email: string, passwordAttempt: str
   if (user.password !== passwordAttempt) {
     return {
       success: false,
+      isOutsider: false,
       error: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง',
     };
   }
 
-  // หากเป็นการ Login ครั้งแรก -> ต้องยืนยัน OTP ก่อน
-  if (user.isFirstLogin || !user.isVerified) {
-    return {
-      success: true,
-      requiresOtp: true,
-      user: sanitizeUser(user),
-    };
-  }
-
-  // เข้าสู่ระบบสำเร็จ
-  user.lastLoginAt = new Date().toISOString();
-  const token = `skp_session_${user.id}_${Date.now()}`;
-
+  // บุคลากรในองค์กรต้องยืนยันตัวตนด้วยรหัส OTP ทุกครั้งที่มีการเข้าสู่ระบบ (Mandatory OTP on every login)
   return {
     success: true,
-    requiresOtp: false,
+    requiresOtp: true,
     user: sanitizeUser(user),
-    token,
   };
 }
 

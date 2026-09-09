@@ -61,9 +61,10 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
     assert.ok(foremanTh, 'Must find Prasert with real email prasertlakasong@gmail.com');
   });
 
-  await t.test('Outsiders (non-whitelisted users) are strictly blocked from login', () => {
+  await t.test('Outsiders (non-whitelisted users) are strictly blocked from login and flagged', () => {
     const outsiderLogin = loginStaff('สมชาย คนนอก', 'outsider@gmail.com', '123456');
     assert.equal(outsiderLogin.success, false);
+    assert.equal(outsiderLogin.isOutsider, true, 'Must flag outsider login attempt');
     assert.ok(
       outsiderLogin.error.includes('บุคคลภายนอกไม่สามารถเข้าใช้งานได้'),
       'Must reject outsiders with company whitelist notice'
@@ -71,19 +72,21 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
 
     const wrongEmail = loginStaff('สุพจน์ เหมสถล', 'wrong.email@gmail.com', 'skp@admin2026');
     assert.equal(wrongEmail.success, false);
+    assert.equal(wrongEmail.isOutsider, true);
   });
 
   await t.test('Password check: Incorrect password returns explicit error', () => {
     const wrongPass = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'wrong_pass_123');
     assert.equal(wrongPass.success, false);
+    assert.equal(wrongPass.isOutsider, false);
     assert.ok(wrongPass.error.includes('รหัสผ่านไม่ถูกต้อง'));
   });
 
-  await t.test('First-time login workflow enforces OTP verification', async () => {
-    // 1. Attempt login with correct credentials -> triggers requiresOtp
+  await t.test('Login workflow enforces OTP verification on EVERY login attempt', async () => {
+    // 1. Initial attempt login with correct credentials -> triggers requiresOtp
     const firstLogin = loginStaff('Supot Hemsathol', 'supot.meskp@gmail.com', 'skp@admin2026');
     assert.equal(firstLogin.success, true);
-    assert.equal(firstLogin.requiresOtp, true, 'First-time login must require OTP');
+    assert.equal(firstLogin.requiresOtp, true, 'First login must require OTP');
     assert.ok(firstLogin.user, 'Must return sanitized user info');
 
     const userId = firstLogin.user.id;
@@ -113,14 +116,20 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
     const validVerify = verifyOtpAndActivate(userId, currentOtp, 'new_secure_pwd_2026');
     assert.equal(validVerify.success, true);
     assert.ok(validVerify.token, 'Must return auth token upon successful activation');
-    assert.equal(validVerify.user.isFirstLogin, false, 'User must be marked as not first login');
-    assert.equal(validVerify.user.isVerified, true, 'User must be marked as verified');
 
-    // 6. Next login with new password no longer requires OTP
+    // 6. Every subsequent login STILL requires OTP verification
     const subsequentLogin = loginStaff('สุพจน์ เหมสถล', 'supot.meskp@gmail.com', 'new_secure_pwd_2026');
     assert.equal(subsequentLogin.success, true);
-    assert.equal(subsequentLogin.requiresOtp, false, 'Subsequent login should directly succeed');
-    assert.ok(subsequentLogin.token);
+    assert.equal(subsequentLogin.requiresOtp, true, 'Subsequent login must still require OTP on every attempt');
+  });
+
+  await t.test('Admin UI Portal has removed test user presets and includes outsider redirection', () => {
+    const adminPath = path.resolve('src/app/admin/page.tsx');
+    const adminContent = fs.readFileSync(adminPath, 'utf8');
+    assert.equal(adminContent.includes('handleQuickFill'), false, 'handleQuickFill must be removed');
+    assert.equal(adminContent.includes('เลือกผู้ใช้งานทดสอบ'), false, 'Quick test preset buttons must be removed');
+    assert.ok(adminContent.includes('isOutsiderBlocked'), 'Admin page must have outsider blocked handling');
+    assert.ok(adminContent.includes('บุคคลภายนอกไม่มีสิทธิ์เข้าใช้งาน'), 'Admin page must show outsider access denied modal');
   });
 
   await t.test('Navbar and Translations include Admin Portal', () => {

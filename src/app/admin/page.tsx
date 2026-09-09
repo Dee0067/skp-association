@@ -160,6 +160,26 @@ export default function AdminInquiriesPage() {
     }
   }, []);
 
+  // Outsider Rejection & Immediate Redirect State
+  const [isOutsiderBlocked, setIsOutsiderBlocked] = useState(false);
+  const [outsiderCountdown, setOutsiderCountdown] = useState(3);
+
+  // Auto-redirect outsider countdown timer
+  useEffect(() => {
+    if (!isOutsiderBlocked) return;
+    const timer = setInterval(() => {
+      setOutsiderCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          window.location.href = '/';
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isOutsiderBlocked]);
+
   // Handle Logout
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -168,14 +188,6 @@ export default function AdminInquiriesPage() {
     setCurrentUser(null);
     setAuthToken(null);
     setLoginPassword('');
-    setLoginError('');
-  };
-
-  // Handle Quick Fill credentials for testing
-  const handleQuickFill = (name: string, email: string) => {
-    setLoginName(name);
-    setLoginEmail(email);
-    setLoginPassword('skp@admin2026');
     setLoginError('');
   };
 
@@ -198,12 +210,18 @@ export default function AdminInquiriesPage() {
 
       const data = await res.json();
       if (!data.success) {
+        // หากเป็นบุคคลภายนอกที่ไม่ใช่บุคลากรบริษัท -> แสดงคำเตือนและตัดออกไปหน้าหลักทันที
+        if (data.isOutsider) {
+          setIsOutsiderBlocked(true);
+          setOutsiderCountdown(3);
+          return;
+        }
         setLoginError(data.error || 'การเข้าสู่ระบบล้มเหลว กรุณาตรวจสอบข้อมูล');
         return;
       }
 
       if (data.requiresOtp) {
-        // ต้องยืนยัน OTP สำหรับการเข้าใช้งานครั้งแรก
+        // บังคับยืนยันตัวตนด้วย OTP ทุกครั้งที่มีการล็อกอิน
         setOtpPendingUser(data.user);
         setShowOtpModal(true);
         setOtpStep('select');
@@ -559,7 +577,8 @@ export default function AdminInquiriesPage() {
               • สงวนสิทธิ์เฉพาะเจ้าหน้าที่และบุคลากร บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด เท่านั้น (คนนอกไม่สามารถเข้าใช้งานได้)<br />
               • ใช้อีเมลจริงของผู้ใช้งานตามผังโครงสร้างองค์กร (เช่น <span className="text-cyan-300 font-mono">@gmail.com</span>)<br />
               • รองรับการกรอกชื่อ-นามสกุล ทั้ง<strong className="text-slate-200">ภาษาไทย</strong>และ<strong className="text-slate-200">ภาษาอังกฤษ</strong><br />
-              • เข้าสู่ระบบครั้งแรก บังคับยืนยันรหัสความปลอดภัย <strong className="text-cyan-300">OTP</strong> ทางอีเมล หรือ มือถือ
+              • บังคับยืนยันรหัสความปลอดภัย <strong className="text-cyan-300">OTP</strong> ทางอีเมล หรือ เบอร์มือถือ ทุกครั้งที่มีการล็อกอินเข้าใช้งาน<br />
+              • หากไม่ใช่บุคลากรในองค์กร ระบบจะแจ้งเตือนการไม่มีสิทธิ์และตัดกลับสู่หน้าหลักทันที
             </p>
           </div>
         </div>
@@ -644,75 +663,6 @@ export default function AdminInquiriesPage() {
               </button>
             </form>
 
-            {/* Quick Test Accounts Presets */}
-            <div className="mt-6 pt-5 border-t border-slate-800">
-              <div className="text-[11px] font-mono text-slate-400 mb-2.5 flex items-center justify-between">
-                <span>⚡ เลือกผู้ใช้งานทดสอบ (ตามผังองค์กรจริง):</span>
-                <span className="text-cyan-400 font-sans text-[10px]">รหัสผ่าน: skp@admin2026</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('คุณสุพจน์ มั่นสิทธิกุล', 'supot.meskp@gmail.com')}
-                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-white group-hover:text-cyan-300">คุณสุพจน์ มั่นสิทธิกุล (กรรมการผู้จัดการ)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">supot.meskp@gmail.com • โทร 093-695 6445</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">MD</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('คุณวิไลวรรณ โกฆะรัตน์', 'vilaivan2518@gmail.com')}
-                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-white group-hover:text-blue-300">คุณวิไลวรรณ โกฆะรัตน์ (ฝ่ายธุรการ / จป.)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">vilaivan2518@gmail.com • โทร 082-208 4541</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Admin</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('คุณรังสฤทธิ์ สุหลง', 'rangsarit.meskp@gmail.com')}
-                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-white group-hover:text-amber-300">คุณรังสฤทธิ์ สุหลง (วิศวกรโครงการ)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">rangsarit.meskp@gmail.com • โทร 064-630 4866</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Engineer</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('คุณประเสริฐ ลากะสงค์', 'prasertlakasong@gmail.com')}
-                  className="p-2 rounded-lg bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-white group-hover:text-emerald-300">คุณประเสริฐ ลากะสงค์ (วิศวกรโครงการ / Foreman)</span>
-                    <span className="block text-[10px] text-slate-400 font-mono">prasertlakasong@gmail.com • โทร 062-624 8171</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Engineer</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('สมชาย คนนอกระบบ', 'somchai.outsider@gmail.com')}
-                  className="p-2 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 border border-rose-900/50 text-left transition-all flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <span className="font-semibold text-rose-300">ทดสอบคนภายนอก (Somchai Outside)</span>
-                    <span className="block text-[10px] text-rose-400/80 font-mono">somchai.outsider@gmail.com • นอกองค์กร</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">Block</span>
-                </button>
-              </div>
-            </div>
-
             <div className="mt-6 text-center">
               <Link
                 href="/"
@@ -736,7 +686,7 @@ export default function AdminInquiriesPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">ยืนยันตัวตนด้วยรหัส OTP</h3>
-                    <p className="text-[11px] text-cyan-400 font-mono">การเข้าสู่ระบบครั้งแรก (First-Time Login)</p>
+                    <p className="text-[11px] text-cyan-400 font-mono">ระบบความปลอดภัย 2 ขั้นตอน (บังคับยืนยันทุกครั้งที่เข้าสู่ระบบ)</p>
                   </div>
                 </div>
                 <button
@@ -876,7 +826,7 @@ export default function AdminInquiriesPage() {
                       ) : (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>ยืนยันรหัส OTP และเปิดใช้งานบัญชี</span>
+                          <span>ยืนยันรหัส OTP เพื่อเข้าสู่ระบบ (Sign In)</span>
                         </>
                       )}
                     </button>
@@ -891,6 +841,49 @@ export default function AdminInquiriesPage() {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Outsider Access Denied Modal & Immediate Redirect */}
+        {isOutsiderBlocked && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border-2 border-rose-500/70 rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl shadow-rose-950/60 text-center space-y-5 animate-in zoom-in-95">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/40 flex items-center justify-center text-rose-500">
+                <ShieldAlert className="w-9 h-9 animate-pulse" />
+              </div>
+
+              <div className="space-y-2">
+                <span className="inline-block px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                  ACCESS DENIED • ปฏิเสธการเข้าถึง
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-white">
+                  บุคคลภายนอกไม่มีสิทธิ์เข้าใช้งาน
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  ระบบบริหารจัดการนี้สงวนสิทธิ์เฉพาะบุคลากร <strong className="text-white">บริษัท เอสเคพี แอสโซซิเอชั่น จำกัด</strong> เท่านั้น<br />
+                  ข้อมูลของคุณไม่ตรงกับฐานข้อมูลบุคลากรในองค์กร
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/50 text-xs text-rose-200 space-y-1">
+                <div className="flex items-center justify-center space-x-1.5 font-semibold text-rose-300">
+                  <Clock className="w-4 h-4 animate-spin" />
+                  <span>กำลังนำท่านกลับสู่หน้าหลักเว็บไซต์ใน</span>
+                </div>
+                <div className="text-2xl font-bold font-mono text-white">
+                  {outsiderCountdown} วินาที
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/'; }}
+                className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/40 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>กลับสู่หน้าหลักเว็บไซต์ทันที (Return to Home)</span>
+              </button>
             </div>
           </div>
         )}
