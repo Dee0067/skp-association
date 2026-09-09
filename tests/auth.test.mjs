@@ -42,7 +42,9 @@ test('Company Users Whitelist & First-time OTP Authentication', async (t) => {
     const userTh1 = findCompanyUserByNameAndEmail('คุณสุพจน์ มั่นสิทธิกุล', 'supot.meskp@gmail.com');
     assert.ok(userTh1, 'Must find user with prefix and org chart name');
     const userTh2 = findCompanyUserByNameAndEmail('สุพจน์ เหมสถล', 'supot.meskp@gmail.com');
-    assert.ok(userTh2, 'Must find user with alias name');
+    assert.ok(userTh2, 'Must find user with alias name เหมสถล');
+    const userTh3 = findCompanyUserByNameAndEmail('สุพจน์ เหมสาถล', 'supot.meskp@gmail.com');
+    assert.ok(userTh3, 'Must find user with alias name เหมสาถล');
 
     // 2. English name lookup
     const userEn = findCompanyUserByNameAndEmail('Mr. Supot Munsittikul', 'supot.meskp@gmail.com');

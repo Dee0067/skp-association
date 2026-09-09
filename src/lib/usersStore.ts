@@ -18,7 +18,7 @@ const initialCompanyPersonnel: CompanyUser[] = [
     id: 'usr-skp-001',
     nameTh: 'คุณสุพจน์ มั่นสิทธิกุล',
     nameEn: 'Mr. Supot Munsittikul',
-    nameAliases: ['สุพจน์ เหมสถล', 'สุพจน์ มั่นสิทธิกุล', 'Supot Hemsathol', 'Supot Munsittikul', 'สุพจน์', 'Supot'],
+    nameAliases: ['สุพจน์ เหมสาถล', 'สุพจน์ เหมสถล', 'สุพจน์ มั่นสิทธิกุล', 'Supot Hemsathol', 'Supot Munsittikul', 'สุพจน์', 'Supot'],
     email: 'supot.meskp@gmail.com', // อีเมลจริงตามผังองค์กร
     phone: '093-695 6445',
     role: 'managing_director',
